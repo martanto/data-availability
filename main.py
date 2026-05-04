@@ -6,7 +6,7 @@ from data_availability import PlotAvailability
 if __name__ == "__main__":
     fig = (
         PlotAvailability("example.xlsx")
-        .load_data(years="2016")
+        .load_data(years=["2016", "2017", "2018"])
         .plot_availability(
             title="Data Availability — VG.IJEN.00.EHZ",
             tile_shape="squircle",
