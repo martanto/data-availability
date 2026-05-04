@@ -1,9 +1,11 @@
+from typing import Literal
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 from data_availability.data import load_data
 
@@ -19,6 +21,7 @@ def plot_availability(
     tile_gap: float = 0.9,
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
+    tile_shape: Literal["square", "squircle"] = "square",
 ) -> plt.Figure:
     """Build a GitHub-style calendar heatmap of data completeness over time.
 
@@ -91,24 +94,33 @@ def plot_availability(
                 grid[row, col] = np.nan  # missing = will render grey
 
         # Draw tiles
+        rounding = tile_gap * 0.3
         for col in range(53):
             for row in range(7):
                 if not has_data[row, col]:
                     continue
                 val = grid[row, col]
-                if np.isnan(val):
-                    color = missing_color
+                color = missing_color if np.isnan(val) else cmap(norm(val))
+                if tile_shape == "squircle":
+                    patch = mpatches.FancyBboxPatch(
+                        (col, 6 - row),
+                        tile_gap,
+                        tile_gap,
+                        boxstyle=f"round,pad=0,rounding_size={rounding}",
+                        facecolor=color,
+                        edgecolor="white",
+                        linewidth=0.5,
+                    )
                 else:
-                    color = cmap(norm(val))
-                rect = plt.Rectangle(
-                    (col, 6 - row),
-                    tile_gap,
-                    tile_gap,
-                    facecolor=color,
-                    edgecolor="white",
-                    linewidth=0.5,
-                )
-                ax.add_patch(rect)
+                    patch = mpatches.Rectangle(
+                        (col, 6 - row),
+                        tile_gap,
+                        tile_gap,
+                        facecolor=color,
+                        edgecolor="white",
+                        linewidth=0.5,
+                    )
+                ax.add_patch(patch)
 
         # Month label positions
         month_starts = {}

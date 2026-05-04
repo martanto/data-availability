@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Literal
 from pathlib import Path
 
 import pandas as pd
@@ -35,7 +36,29 @@ class PlotAvailability:
         tile_gap: float = 0.9,
         figsize_per_year: float = 2.2,
         missing_color: str = "#e0e0e0",
+        tile_shape: Literal["square", "squircle"] = "square",
     ) -> plt.Figure:
+        """Build a GitHub-style calendar heatmap of data completeness over time.
+
+        Args:
+            title: Figure super-title rendered above all subplots.
+            hspace: Vertical spacing between year subplots.
+            cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
+                the last subplot and the top of the colorbar.
+            cbar_height: Height of the colorbar axes in figure-fraction units.
+            tile_gap: Side length of each day tile (values < 1 add whitespace
+                between tiles).
+            figsize_per_year: Figure height in inches allocated per year subplot.
+            missing_color: Color used for calendar days absent from the input data.
+            tile_shape: Shape of each day tile. ``"square"`` draws plain rectangles;
+                ``"squircle"`` draws rectangles with rounded corners.
+
+        Returns:
+            A :class:`matplotlib.figure.Figure` containing the heatmap.
+
+        Raises:
+            RuntimeError: If :meth:`load_data` has not been called first.
+        """
         if self._df is None:
             raise RuntimeError("Call .load_data() before .plot_availability().")
         return _plot_availability(
@@ -49,4 +72,5 @@ class PlotAvailability:
             tile_gap=tile_gap,
             figsize_per_year=figsize_per_year,
             missing_color=missing_color,
+            tile_shape=tile_shape,
         )
