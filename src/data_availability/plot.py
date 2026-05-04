@@ -16,7 +16,7 @@ def _build_figure(
     date_column: str,
     completeness_column: str,
     hspace: float,
-    cbar_bottom: float,
+    cbar_bottom: int,
     cbar_height: int,
     tile_gap: float,
     figsize_per_year: float,
@@ -132,8 +132,14 @@ def _build_figure(
     cbar_left = pos_last.x0 + (pos_last.x1 - pos_last.x0) * 0.1
     fig_height_px = fig.get_size_inches()[1] * fig.dpi
     cbar_height_fraction = cbar_height / fig_height_px
+    cbar_bottom_fraction = cbar_bottom / fig_height_px
     cbar_ax = fig.add_axes(
-        [cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height_fraction]
+        [
+            cbar_left,
+            pos_last.y0 - cbar_bottom_fraction,
+            cbar_width,
+            cbar_height_fraction,
+        ]
     )
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -153,7 +159,7 @@ def plot_from_file(
     date_column: str = "date",
     completeness_column: str = "completeness",
     hspace: float = 0.2,
-    cbar_bottom: float = 0.012,
+    cbar_bottom: int = 20,
     cbar_height: int = 10,
     tile_gap: float = 0.9,
     figsize_per_year: float = 2.2,
@@ -175,8 +181,8 @@ def plot_from_file(
         title: Figure super-title rendered above all subplots.
         hspace: Vertical spacing between year subplots, passed to
             ``Figure.subplots_adjust``.
-        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
-            the last subplot and the top of the colorbar.
+        cbar_bottom: Gap in pixels between the bottom edge of the last subplot
+            and the top of the colorbar.
         cbar_height: Height of the colorbar in pixels.
         tile_gap: Side length of each day tile (values < 1 add whitespace
             between tiles).
@@ -216,7 +222,7 @@ def plot_from_df(
     date_column: str = "date",
     completeness_column: str = "completeness",
     hspace: float = 0.2,
-    cbar_bottom: float = 0.012,
+    cbar_bottom: int = 20,
     cbar_height: int = 10,
     tile_gap: float = 0.9,
     figsize_per_year: float = 2.2,
@@ -234,8 +240,8 @@ def plot_from_df(
             ``completeness_column`` (0–100).
         title: Figure super-title rendered above all subplots.
         hspace: Vertical spacing between year subplots.
-        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
-            the last subplot and the top of the colorbar.
+        cbar_bottom: Gap in pixels between the bottom edge of the last subplot
+            and the top of the colorbar.
         cbar_height: Height of the colorbar in pixels.
         tile_gap: Side length of each day tile (values < 1 add whitespace
             between tiles).
