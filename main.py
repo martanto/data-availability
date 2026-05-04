@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
 
-from data_availability import plot_availability
+from data_availability import PlotAvailability
 
 
 if __name__ == "__main__":
-    fig = plot_availability("example.xlsx", title="Data Availability — VG.IJEN.00.EHZ")
+    fig = (
+        PlotAvailability("example.xlsx")
+        .load_data()
+        .plot_availability(title="Data Availability — VG.IJEN.00.EHZ")
+    )
     plt.savefig("output.png", dpi=150, bbox_inches="tight")
     print("Saved to output.png")

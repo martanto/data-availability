@@ -11,6 +11,8 @@ from data_availability.data import load_data
 def plot_availability(
     filepath: str | Path,
     title: str = "Data Availability",
+    date_column: str = "date",
+    completeness_column: str = "completeness",
     hspace: float = 0.2,
     cbar_bottom: float = 0.012,
     cbar_height: float = 0.005,
@@ -47,9 +49,11 @@ def plot_availability(
         is not saved or displayed; call ``fig.savefig()`` or ``plt.show()`` as
         needed.
     """
-    df = load_data(filepath)
+    df = load_data(
+        filepath, date_column=date_column, completeness_column=completeness_column
+    )
 
-    years = sorted(df["date"].dt.year.unique())
+    years = sorted(df[date_column].dt.year.unique())
     n_years = len(years)
 
     fig, axes = plt.subplots(n_years, 1, figsize=(20, n_years * figsize_per_year))
@@ -65,7 +69,9 @@ def plot_availability(
 
     for ax, year in zip(axes, years, strict=True):
         year_dates = pd.date_range(f"{year}-01-01", f"{year}-12-31", freq="D")
-        year_df = df[df["date"].dt.year == year].set_index("date")["completeness"]
+        year_df = df[df[date_column].dt.year == year].set_index(date_column)[
+            completeness_column
+        ]
 
         # Build a 7-row (weekday) x 53-col (week) grid
         grid = np.full((7, 53), np.nan)

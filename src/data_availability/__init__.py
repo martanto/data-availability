@@ -13,6 +13,7 @@ from importlib.metadata import version
 
 from data_availability.data import load_data
 from data_availability.plot import plot_availability
+from data_availability.availability import PlotAvailability
 
 
 __version__ = version("data-availability")
@@ -28,6 +29,7 @@ __all__ = [
     "__author_email__",
     "__license__",
     "__copyright__",
+    "PlotAvailability",
     "load_data",
     "plot_availability",
 ]
