@@ -18,7 +18,13 @@ def load_data(filepath: str | Path) -> pd.DataFrame:
     return df.sort_values("date").reset_index(drop=True)
 
 
-def plot_availability(filepath: str | Path, title: str = "Data Availability") -> plt.Figure:
+def plot_availability(
+    filepath: str | Path,
+    title: str = "Data Availability",
+    hspace: float = 0.2,
+    cbar_bottom: float = 0.012,
+    cbar_height: float = 0.005,
+) -> plt.Figure:
     df = load_data(filepath)
 
     years = sorted(df["date"].dt.year.unique())
@@ -87,23 +93,34 @@ def plot_availability(filepath: str | Path, title: str = "Data Availability") ->
         ax.set_xlim(0, 53)
         ax.set_ylim(-0.2, 7.8)
         ax.set_aspect("equal")
-        ax.set_yticks(range(7))
-        ax.set_yticklabels(list(reversed(day_labels)), fontsize=7)
+        # tile centers: bottom-left is (col, 6-row), height 0.9 → center at 6-row+0.45
+        ax.set_yticks([6 - r + 0.45 for r in range(7)])
+        ax.set_yticklabels(day_labels, fontsize=7)
         ax.set_xticks([])
         ax.set_ylabel(str(year), fontsize=9, rotation=0, labelpad=30, va="center")
         ax.set_frame_on(False)
         ax.tick_params(left=False)
 
-    fig.suptitle(title, fontsize=13, fontweight="bold")
-    fig.subplots_adjust(hspace=0.6, right=0.88)
+    fig.subplots_adjust(hspace=hspace)
 
-    # Colorbar
+    # Get the bounding box of the last subplot to anchor the colorbar tightly below it
+    fig.canvas.draw()
+    last_ax = axes[-1]
+    first_ax = axes[0]
+    pos_last = last_ax.get_position()
+    pos_first = first_ax.get_position()
+
+    cbar_width = (pos_last.x1 - pos_last.x0) * 0.8
+    cbar_left = pos_last.x0 + (pos_last.x1 - pos_last.x0) * 0.1
+    cbar_ax = fig.add_axes([cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height])
+
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.90, 0.15, 0.012, 0.7])
-    cbar = fig.colorbar(sm, cax=cbar_ax)
+    cbar = fig.colorbar(sm, cax=cbar_ax, orientation="horizontal")
     cbar.set_label("Completeness (%)", fontsize=9)
     cbar.ax.tick_params(labelsize=8)
+
+    fig.suptitle(title, fontsize=13, fontweight="bold", y=pos_first.y1 + 0.02)
 
     return fig
 
@@ -112,4 +129,3 @@ if __name__ == "__main__":
     fig = plot_availability("example.xlsx", title="Data Availability — VG.IJEN.00.EHZ")
     plt.savefig("output.png", dpi=150, bbox_inches="tight")
     print("Saved to output.png")
-    plt.show()
