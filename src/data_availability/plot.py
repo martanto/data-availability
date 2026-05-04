@@ -18,6 +18,35 @@ def plot_availability(
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
 ) -> plt.Figure:
+    """Build a GitHub-style calendar heatmap of data completeness over time.
+
+    Creates one subplot per calendar year found in the data. Each day is
+    rendered as a colored tile on a Mon–Sun × week grid. Tiles are colored on
+    a red-yellow-green gradient according to completeness; days present in the
+    calendar but absent from the dataset are rendered in ``missing_color``. A
+    horizontal colorbar is anchored below the last subplot.
+
+    Args:
+        filepath: Path to an ``.xlsx``, ``.xls``, or ``.csv`` file accepted by
+            :func:`~data_availability.data.load_data`.
+        title: Figure super-title rendered above all subplots.
+        hspace: Vertical spacing between year subplots, passed to
+            ``Figure.subplots_adjust``.
+        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
+            the last subplot and the top of the colorbar.
+        cbar_height: Height of the colorbar axes in figure-fraction units.
+        tile_gap: Side length of each day tile (values < 1 add whitespace
+            between tiles).
+        figsize_per_year: Figure height in inches allocated per year subplot.
+            Total height is ``n_years * figsize_per_year``.
+        missing_color: Hex or named color used for calendar days that have no
+            corresponding row in the input data.
+
+    Returns:
+        A :class:`matplotlib.figure.Figure` containing the heatmap. The figure
+        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()`` as
+        needed.
+    """
     df = load_data(filepath)
 
     years = sorted(df["date"].dt.year.unique())
@@ -27,7 +56,9 @@ def plot_availability(
     if n_years == 1:
         axes = [axes]
 
-    cmap = mcolors.LinearSegmentedColormap.from_list("rg", ["#d73027", "#fee08b", "#1a9850"])
+    cmap = mcolors.LinearSegmentedColormap.from_list(
+        "rg", ["#d73027", "#fee08b", "#1a9850"]
+    )
     norm = mcolors.Normalize(vmin=0, vmax=100)
 
     day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -64,7 +95,9 @@ def plot_availability(
                 else:
                     color = cmap(norm(val))
                 rect = plt.Rectangle(
-                    (col, 6 - row), tile_gap, tile_gap,
+                    (col, 6 - row),
+                    tile_gap,
+                    tile_gap,
                     facecolor=color,
                     edgecolor="white",
                     linewidth=0.5,
@@ -81,7 +114,15 @@ def plot_availability(
                 month_starts[date.strftime("%b")] = col
 
         for month, col in month_starts.items():
-            ax.text(col + 0.4, 7.2, month, ha="center", va="bottom", fontsize=7, color="#555")
+            ax.text(
+                col + 0.4,
+                7.2,
+                month,
+                ha="center",
+                va="bottom",
+                fontsize=7,
+                color="#555",
+            )
 
         ax.set_xlim(0, 53)
         ax.set_ylim(-0.2, 7.8)
@@ -104,7 +145,9 @@ def plot_availability(
 
     cbar_width = (pos_last.x1 - pos_last.x0) * 0.8
     cbar_left = pos_last.x0 + (pos_last.x1 - pos_last.x0) * 0.1
-    cbar_ax = fig.add_axes([cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height])
+    cbar_ax = fig.add_axes(
+        [cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height]
+    )
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])

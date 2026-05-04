@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from data_availability.plot import plot_availability
+from data_availability import plot_availability
 
 
 if __name__ == "__main__":
