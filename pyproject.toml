@@ -27,6 +27,7 @@ classifiers = [
 dev = [
     "ipykernel>=7.2.0",
     "notebook>=7.5.6",
+    "pandas-stubs==3.0.0.260204",
     "ruff>=0.15.12",
     "ty>=0.0.34",
 ]
