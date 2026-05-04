@@ -24,13 +24,16 @@ def plot_availability(
     hspace: float = 0.2,
     cbar_bottom: float = 0.012,
     cbar_height: float = 0.005,
+    tile_gap: float = 0.9,
+    figsize_per_year: float = 2.2,
+    missing_color: str = "#e0e0e0",
 ) -> plt.Figure:
     df = load_data(filepath)
 
     years = sorted(df["date"].dt.year.unique())
     n_years = len(years)
 
-    fig, axes = plt.subplots(n_years, 1, figsize=(20, n_years * 2.2))
+    fig, axes = plt.subplots(n_years, 1, figsize=(20, n_years * figsize_per_year))
     if n_years == 1:
         axes = [axes]
 
@@ -67,11 +70,11 @@ def plot_availability(
                     continue
                 val = grid[row, col]
                 if np.isnan(val):
-                    color = "#e0e0e0"  # missing data: light grey
+                    color = missing_color
                 else:
                     color = cmap(norm(val))
                 rect = plt.Rectangle(
-                    (col, 6 - row), 0.9, 0.9,
+                    (col, 6 - row), tile_gap, tile_gap,
                     facecolor=color,
                     edgecolor="white",
                     linewidth=0.5,
@@ -93,8 +96,7 @@ def plot_availability(
         ax.set_xlim(0, 53)
         ax.set_ylim(-0.2, 7.8)
         ax.set_aspect("equal")
-        # tile centers: bottom-left is (col, 6-row), height 0.9 → center at 6-row+0.45
-        ax.set_yticks([6 - r + 0.45 for r in range(7)])
+        ax.set_yticks([6 - r + tile_gap / 2 for r in range(7)])
         ax.set_yticklabels(day_labels, fontsize=7)
         ax.set_xticks([])
         ax.set_ylabel(str(year), fontsize=9, rotation=0, labelpad=30, va="center")
