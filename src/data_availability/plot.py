@@ -10,52 +10,19 @@ import matplotlib.patches as mpatches
 from data_availability.data import load_data
 
 
-def plot_availability(
-    filepath: str | Path,
-    title: str = "Data Availability",
-    date_column: str = "date",
-    completeness_column: str = "completeness",
-    hspace: float = 0.2,
-    cbar_bottom: float = 0.012,
-    cbar_height: float = 0.005,
-    tile_gap: float = 0.9,
-    figsize_per_year: float = 2.2,
-    missing_color: str = "#e0e0e0",
-    tile_shape: Literal["square", "squircle"] = "square",
+def _build_figure(
+    df: pd.DataFrame,
+    title: str,
+    date_column: str,
+    completeness_column: str,
+    hspace: float,
+    cbar_bottom: float,
+    cbar_height: float,
+    tile_gap: float,
+    figsize_per_year: float,
+    missing_color: str,
+    tile_shape: Literal["square", "squircle"],
 ) -> plt.Figure:
-    """Build a GitHub-style calendar heatmap of data completeness over time.
-
-    Creates one subplot per calendar year found in the data. Each day is
-    rendered as a colored tile on a Mon–Sun × week grid. Tiles are colored on
-    a red-yellow-green gradient according to completeness; days present in the
-    calendar but absent from the dataset are rendered in ``missing_color``. A
-    horizontal colorbar is anchored below the last subplot.
-
-    Args:
-        filepath: Path to an ``.xlsx``, ``.xls``, or ``.csv`` file accepted by
-            :func:`~data_availability.data.load_data`.
-        title: Figure super-title rendered above all subplots.
-        hspace: Vertical spacing between year subplots, passed to
-            ``Figure.subplots_adjust``.
-        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
-            the last subplot and the top of the colorbar.
-        cbar_height: Height of the colorbar axes in figure-fraction units.
-        tile_gap: Side length of each day tile (values < 1 add whitespace
-            between tiles).
-        figsize_per_year: Figure height in inches allocated per year subplot.
-            Total height is ``n_years * figsize_per_year``.
-        missing_color: Hex or named color used for calendar days that have no
-            corresponding row in the input data.
-
-    Returns:
-        A :class:`matplotlib.figure.Figure` containing the heatmap. The figure
-        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()`` as
-        needed.
-    """
-    df = load_data(
-        filepath, date_column=date_column, completeness_column=completeness_column
-    )
-
     years = sorted(df[date_column].dt.year.unique())
     n_years = len(years)
 
@@ -176,3 +143,119 @@ def plot_availability(
     fig.suptitle(title, fontsize=13, fontweight="bold", y=pos_first.y1 + 0.02)
 
     return fig
+
+
+def plot_from_file(
+    filepath: str | Path,
+    title: str = "Data Availability",
+    date_column: str = "date",
+    completeness_column: str = "completeness",
+    hspace: float = 0.2,
+    cbar_bottom: float = 0.012,
+    cbar_height: float = 0.005,
+    tile_gap: float = 0.9,
+    figsize_per_year: float = 2.2,
+    missing_color: str = "#e0e0e0",
+    tile_shape: Literal["square", "squircle"] = "square",
+) -> plt.Figure:
+    """Build a GitHub-style calendar heatmap of data completeness from a file.
+
+    Loads data from an Excel or CSV file, then creates one subplot per calendar
+    year found in the data. Each day is rendered as a colored tile on a
+    Mon–Sun × week grid, color-coded on a red-yellow-green gradient according
+    to completeness. Days present in the calendar but absent from the dataset
+    are rendered in ``missing_color``. A horizontal colorbar is anchored below
+    the last subplot.
+
+    Args:
+        filepath: Path to an ``.xlsx``, ``.xls``, or ``.csv`` file accepted by
+            :func:`~data_availability.data.load_data`.
+        title: Figure super-title rendered above all subplots.
+        hspace: Vertical spacing between year subplots, passed to
+            ``Figure.subplots_adjust``.
+        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
+            the last subplot and the top of the colorbar.
+        cbar_height: Height of the colorbar axes in figure-fraction units.
+        tile_gap: Side length of each day tile (values < 1 add whitespace
+            between tiles).
+        figsize_per_year: Figure height in inches allocated per year subplot.
+            Total height is ``n_years * figsize_per_year``.
+        missing_color: Hex or named color used for calendar days that have no
+            corresponding row in the input data.
+        tile_shape: ``"square"`` draws plain rectangles; ``"squircle"`` draws
+            rectangles with rounded corners.
+
+    Returns:
+        A :class:`matplotlib.figure.Figure` containing the heatmap. The figure
+        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()`` as
+        needed.
+    """
+    df = load_data(
+        filepath, date_column=date_column, completeness_column=completeness_column
+    )
+    return _build_figure(
+        df,
+        title=title,
+        date_column=date_column,
+        completeness_column=completeness_column,
+        hspace=hspace,
+        cbar_bottom=cbar_bottom,
+        cbar_height=cbar_height,
+        tile_gap=tile_gap,
+        figsize_per_year=figsize_per_year,
+        missing_color=missing_color,
+        tile_shape=tile_shape,
+    )
+
+
+def plot_from_df(
+    df: pd.DataFrame,
+    title: str = "Data Availability",
+    date_column: str = "date",
+    completeness_column: str = "completeness",
+    hspace: float = 0.2,
+    cbar_bottom: float = 0.012,
+    cbar_height: float = 0.005,
+    tile_gap: float = 0.9,
+    figsize_per_year: float = 2.2,
+    missing_color: str = "#e0e0e0",
+    tile_shape: Literal["square", "squircle"] = "square",
+) -> plt.Figure:
+    """Build a GitHub-style calendar heatmap from an in-memory DataFrame.
+
+    Identical to :func:`plot_from_file` but accepts a pre-loaded
+    :class:`~pandas.DataFrame` instead of a file path. Useful when the data
+    has already been loaded and optionally filtered before plotting.
+
+    Args:
+        df: DataFrame with a datetime ``date_column`` and a numeric
+            ``completeness_column`` (0–100).
+        title: Figure super-title rendered above all subplots.
+        hspace: Vertical spacing between year subplots.
+        cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
+            the last subplot and the top of the colorbar.
+        cbar_height: Height of the colorbar axes in figure-fraction units.
+        tile_gap: Side length of each day tile (values < 1 add whitespace
+            between tiles).
+        figsize_per_year: Figure height in inches allocated per year subplot.
+        missing_color: Hex or named color used for calendar days absent from
+            the input data.
+        tile_shape: ``"square"`` draws plain rectangles; ``"squircle"`` draws
+            rectangles with rounded corners.
+
+    Returns:
+        A :class:`matplotlib.figure.Figure` containing the heatmap.
+    """
+    return _build_figure(
+        df,
+        title=title,
+        date_column=date_column,
+        completeness_column=completeness_column,
+        hspace=hspace,
+        cbar_bottom=cbar_bottom,
+        cbar_height=cbar_height,
+        tile_gap=tile_gap,
+        figsize_per_year=figsize_per_year,
+        missing_color=missing_color,
+        tile_shape=tile_shape,
+    )

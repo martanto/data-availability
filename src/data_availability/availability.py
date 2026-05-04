@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from data_availability.data import load_data
-from data_availability.plot import plot_availability as _plot_availability
+from data_availability.plot import plot_from_df as _plot_from_df
 
 
 class PlotAvailability:
@@ -21,10 +21,19 @@ class PlotAvailability:
         self,
         date_column: str = "date",
         completeness_column: str = "completeness",
+        years: str | list[str] | None = None,
     ) -> PlotAvailability:
         self._date_column = date_column
         self._completeness_column = completeness_column
         self._df = load_data(self._filepath, date_column, completeness_column)
+        if years is not None:
+            selected = [str(y) for y in ([years] if isinstance(years, str) else years)]
+            mask = self._df[date_column].dt.year.astype(str).isin(selected)
+            self._df = self._df[mask].reset_index(drop=True)
+            if isinstance(self._df, pd.DataFrame) and self._df.empty:
+                raise ValueError(
+                    f"No data found for the specified year(s): {selected}."
+                )
         return self
 
     def plot_availability(
@@ -61,8 +70,8 @@ class PlotAvailability:
         """
         if self._df is None:
             raise RuntimeError("Call .load_data() before .plot_availability().")
-        return _plot_availability(
-            self._filepath,
+        return _plot_from_df(
+            self._df,
             title=title,
             date_column=self._date_column,
             completeness_column=self._completeness_column,
