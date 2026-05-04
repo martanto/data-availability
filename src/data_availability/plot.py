@@ -17,7 +17,7 @@ def _build_figure(
     completeness_column: str,
     hspace: float,
     cbar_bottom: float,
-    cbar_height: float,
+    cbar_height: int,
     tile_gap: float,
     figsize_per_year: float,
     missing_color: str,
@@ -130,8 +130,10 @@ def _build_figure(
 
     cbar_width = (pos_last.x1 - pos_last.x0) * 0.8
     cbar_left = pos_last.x0 + (pos_last.x1 - pos_last.x0) * 0.1
+    fig_height_px = fig.get_size_inches()[1] * fig.dpi
+    cbar_height_fraction = cbar_height / fig_height_px
     cbar_ax = fig.add_axes(
-        [cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height]
+        [cbar_left, pos_last.y0 - cbar_bottom, cbar_width, cbar_height_fraction]
     )
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -152,7 +154,7 @@ def plot_from_file(
     completeness_column: str = "completeness",
     hspace: float = 0.2,
     cbar_bottom: float = 0.012,
-    cbar_height: float = 0.005,
+    cbar_height: int = 10,
     tile_gap: float = 0.9,
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
@@ -175,7 +177,7 @@ def plot_from_file(
             ``Figure.subplots_adjust``.
         cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
             the last subplot and the top of the colorbar.
-        cbar_height: Height of the colorbar axes in figure-fraction units.
+        cbar_height: Height of the colorbar in pixels.
         tile_gap: Side length of each day tile (values < 1 add whitespace
             between tiles).
         figsize_per_year: Figure height in inches allocated per year subplot.
@@ -215,7 +217,7 @@ def plot_from_df(
     completeness_column: str = "completeness",
     hspace: float = 0.2,
     cbar_bottom: float = 0.012,
-    cbar_height: float = 0.005,
+    cbar_height: int = 10,
     tile_gap: float = 0.9,
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
@@ -234,7 +236,7 @@ def plot_from_df(
         hspace: Vertical spacing between year subplots.
         cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
             the last subplot and the top of the colorbar.
-        cbar_height: Height of the colorbar axes in figure-fraction units.
+        cbar_height: Height of the colorbar in pixels.
         tile_gap: Side length of each day tile (values < 1 add whitespace
             between tiles).
         figsize_per_year: Figure height in inches allocated per year subplot.

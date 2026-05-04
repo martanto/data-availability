@@ -41,7 +41,7 @@ class PlotAvailability:
         title: str = "Data Availability",
         hspace: float = 0.2,
         cbar_bottom: float = 0.012,
-        cbar_height: float = 0.005,
+        cbar_height: int = 10,
         tile_gap: float = 0.9,
         figsize_per_year: float = 2.2,
         missing_color: str = "#e0e0e0",
@@ -54,7 +54,7 @@ class PlotAvailability:
             hspace: Vertical spacing between year subplots.
             cbar_bottom: Gap (in figure-fraction units) between the bottom edge of
                 the last subplot and the top of the colorbar.
-            cbar_height: Height of the colorbar axes in figure-fraction units.
+            cbar_height: Height of the colorbar in pixels.
             tile_gap: Side length of each day tile (values < 1 add whitespace
                 between tiles).
             figsize_per_year: Figure height in inches allocated per year subplot.
