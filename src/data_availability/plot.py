@@ -22,7 +22,40 @@ def _build_figure(
     figsize_per_year: float,
     missing_color: str,
     tile_shape: Literal["square", "squircle"],
+    title_pad: int,
 ) -> plt.Figure:
+    """Render a GitHub-style calendar heatmap from a pre-validated DataFrame.
+
+    Internal helper called by :func:`plot_from_file` and :func:`plot_from_df`.
+    Creates one subplot per calendar year in ``df``, draws day tiles on a
+    Mon–Sun × week grid, attaches a horizontal colorbar below the last subplot,
+    and places a super-title above the first.
+
+    Args:
+        df: DataFrame with a datetime ``date_column`` and a numeric
+            ``completeness_column`` (0–100), sorted ascending by date.
+        title: Figure super-title rendered above all subplots.
+        date_column: Name of the datetime column in ``df``.
+        completeness_column: Name of the numeric completeness column (0–100).
+        hspace: Vertical spacing between year subplots, passed to
+            ``Figure.subplots_adjust``.
+        cbar_bottom: Gap in pixels between the bottom edge of the last subplot
+            and the top of the colorbar.
+        cbar_height: Height of the colorbar in pixels.
+        tile_gap: Side length of each day tile; values less than 1 add
+            whitespace between tiles.
+        figsize_per_year: Figure height in inches allocated per year subplot.
+            Total figure height is ``n_years * figsize_per_year``.
+        missing_color: Hex or named color for calendar days absent from
+            ``df``.
+        tile_shape: ``"square"`` draws plain rectangles; ``"squircle"`` draws
+            rectangles with rounded corners.
+        title_pad: Gap in pixels between the top of the first subplot and the
+            figure super-title.
+
+    Returns:
+        A :class:`matplotlib.figure.Figure` containing the heatmap.
+    """
     years = sorted(df[date_column].dt.year.unique())
     n_years = len(years)
 
@@ -148,7 +181,8 @@ def _build_figure(
     cbar.set_label("Completeness (%)", fontsize=9)
     cbar.ax.tick_params(labelsize=8)
 
-    fig.suptitle(title, fontsize=13, fontweight="bold", y=pos_first.y1 + 0.02)
+    title_pad_fraction = title_pad / fig_height_px
+    fig.suptitle(title, fontsize=13, fontweight="bold", y=pos_first.y1 + title_pad_fraction)
 
     return fig
 
@@ -165,38 +199,43 @@ def plot_from_file(
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
     tile_shape: Literal["square", "squircle"] = "square",
+    title_pad: int = 40,
 ) -> plt.Figure:
     """Build a GitHub-style calendar heatmap of data completeness from a file.
 
-    Loads data from an Excel or CSV file, then creates one subplot per calendar
-    year found in the data. Each day is rendered as a colored tile on a
-    Mon–Sun × week grid, color-coded on a red-yellow-green gradient according
-    to completeness. Days present in the calendar but absent from the dataset
-    are rendered in ``missing_color``. A horizontal colorbar is anchored below
-    the last subplot.
+    Loads data from an Excel or CSV file and delegates to
+    :func:`plot_from_df`. Creates one subplot per calendar year, with each day
+    rendered as a colored tile on a Mon–Sun × week grid. Tiles are color-coded
+    on a red-yellow-green gradient; days absent from the dataset are rendered
+    in ``missing_color``. A horizontal colorbar is placed below the last
+    subplot and a super-title above the first.
 
     Args:
         filepath: Path to an ``.xlsx``, ``.xls``, or ``.csv`` file accepted by
             :func:`~data_availability.data.load_data`.
         title: Figure super-title rendered above all subplots.
+        date_column: Name of the datetime column in the file.
+        completeness_column: Name of the numeric completeness column (0–100).
         hspace: Vertical spacing between year subplots, passed to
             ``Figure.subplots_adjust``.
         cbar_bottom: Gap in pixels between the bottom edge of the last subplot
             and the top of the colorbar.
         cbar_height: Height of the colorbar in pixels.
-        tile_gap: Side length of each day tile (values < 1 add whitespace
-            between tiles).
+        tile_gap: Side length of each day tile; values less than 1 add
+            whitespace between tiles.
         figsize_per_year: Figure height in inches allocated per year subplot.
-            Total height is ``n_years * figsize_per_year``.
-        missing_color: Hex or named color used for calendar days that have no
-            corresponding row in the input data.
+            Total figure height is ``n_years * figsize_per_year``.
+        missing_color: Hex or named color for calendar days absent from the
+            input data.
         tile_shape: ``"square"`` draws plain rectangles; ``"squircle"`` draws
             rectangles with rounded corners.
+        title_pad: Gap in pixels between the top of the first subplot and the
+            figure super-title.
 
     Returns:
         A :class:`matplotlib.figure.Figure` containing the heatmap. The figure
-        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()`` as
-        needed.
+        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()``
+        afterwards.
     """
     df = load_data(
         filepath, date_column=date_column, completeness_column=completeness_column
@@ -213,6 +252,7 @@ def plot_from_file(
         figsize_per_year=figsize_per_year,
         missing_color=missing_color,
         tile_shape=tile_shape,
+        title_pad=title_pad,
     )
 
 
@@ -228,31 +268,41 @@ def plot_from_df(
     figsize_per_year: float = 2.2,
     missing_color: str = "#e0e0e0",
     tile_shape: Literal["square", "squircle"] = "square",
+    title_pad: int = 40,
 ) -> plt.Figure:
     """Build a GitHub-style calendar heatmap from an in-memory DataFrame.
 
-    Identical to :func:`plot_from_file` but accepts a pre-loaded
-    :class:`~pandas.DataFrame` instead of a file path. Useful when the data
-    has already been loaded and optionally filtered before plotting.
+    Accepts a pre-loaded :class:`~pandas.DataFrame` instead of a file path.
+    Useful when data has already been loaded and optionally filtered before
+    plotting. For file-based access see :func:`plot_from_file`.
 
     Args:
         df: DataFrame with a datetime ``date_column`` and a numeric
-            ``completeness_column`` (0–100).
+            ``completeness_column`` (0–100), as returned by
+            :func:`~data_availability.data.load_data`.
         title: Figure super-title rendered above all subplots.
-        hspace: Vertical spacing between year subplots.
+        date_column: Name of the datetime column in ``df``.
+        completeness_column: Name of the numeric completeness column (0–100).
+        hspace: Vertical spacing between year subplots, passed to
+            ``Figure.subplots_adjust``.
         cbar_bottom: Gap in pixels between the bottom edge of the last subplot
             and the top of the colorbar.
         cbar_height: Height of the colorbar in pixels.
-        tile_gap: Side length of each day tile (values < 1 add whitespace
-            between tiles).
+        tile_gap: Side length of each day tile; values less than 1 add
+            whitespace between tiles.
         figsize_per_year: Figure height in inches allocated per year subplot.
-        missing_color: Hex or named color used for calendar days absent from
-            the input data.
+            Total figure height is ``n_years * figsize_per_year``.
+        missing_color: Hex or named color for calendar days absent from
+            ``df``.
         tile_shape: ``"square"`` draws plain rectangles; ``"squircle"`` draws
             rectangles with rounded corners.
+        title_pad: Gap in pixels between the top of the first subplot and the
+            figure super-title.
 
     Returns:
-        A :class:`matplotlib.figure.Figure` containing the heatmap.
+        A :class:`matplotlib.figure.Figure` containing the heatmap. The figure
+        is not saved or displayed; call ``fig.savefig()`` or ``plt.show()``
+        afterwards.
     """
     return _build_figure(
         df,
@@ -266,4 +316,5 @@ def plot_from_df(
         figsize_per_year=figsize_per_year,
         missing_color=missing_color,
         tile_shape=tile_shape,
+        title_pad=title_pad,
     )

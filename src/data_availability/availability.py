@@ -46,6 +46,7 @@ class PlotAvailability:
         figsize_per_year: float = 2.2,
         missing_color: str = "#e0e0e0",
         tile_shape: Literal["square", "squircle"] = "square",
+        title_pad: int = 40,
     ) -> plt.Figure:
         """Build a GitHub-style calendar heatmap of data completeness over time.
 
@@ -61,6 +62,8 @@ class PlotAvailability:
             missing_color: Color used for calendar days absent from the input data.
             tile_shape: Shape of each day tile. ``"square"`` draws plain rectangles;
                 ``"squircle"`` draws rectangles with rounded corners.
+            title_pad: Gap in pixels between the top of the last subplot and the
+                figure super-title.
 
         Returns:
             A :class:`matplotlib.figure.Figure` containing the heatmap.
@@ -82,4 +85,5 @@ class PlotAvailability:
             figsize_per_year=figsize_per_year,
             missing_color=missing_color,
             tile_shape=tile_shape,
+            title_pad=title_pad,
         )
