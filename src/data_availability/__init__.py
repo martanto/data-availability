@@ -1,3 +1,14 @@
+"""data-availability: GitHub-style calendar heatmaps for data completeness.
+
+Generates matplotlib figures showing data completeness over time, one subplot
+per calendar year, color-coded on a red-yellow-green gradient.
+
+Example:
+    >>> from data_availability import plot_availability
+    >>> fig = plot_availability("data.csv", title="Sensor Uptime")
+    >>> fig.savefig("availability.png", dpi=150)
+"""
+
 from importlib.metadata import version
 
 from data_availability.data import load_data
