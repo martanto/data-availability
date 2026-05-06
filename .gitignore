@@ -182,6 +182,7 @@ cython_debug/
 
 *.xlsx
 *.png
+*.ipynb
 /.cache
 output*
 logs*
