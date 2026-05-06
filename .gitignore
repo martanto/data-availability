@@ -183,7 +183,11 @@ cython_debug/
 *.xlsx
 *.png
 *.ipynb
-/.cache
 output*
-logs*
 /.idea
+
+# Cache and log directories (anywhere in the tree)
+.cache/
+**/.cache/
+logs/
+**/logs/
