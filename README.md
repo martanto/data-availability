@@ -31,8 +31,8 @@ from data_availability import PlotAvailability
 
 fig = (
     PlotAvailability("data.xlsx")
-    .load_data(years="2023")
-    .plot_availability(title="Sensor Uptime", tile_shape="squircle")
+    .select(years="2023")
+    .plot(title="Sensor Uptime", tile_shape="squircle")
 )
 plt.savefig("availability.png", dpi=150, bbox_inches="tight")
 ```
@@ -51,21 +51,42 @@ df = pd.read_csv("data.csv")
 fig = plot_from_df(df, title="My Data")
 ```
 
+### Seismic SDS data
+
+```python
+from data_availability import PlotSeismicAvailability
+
+fig = (
+    PlotSeismicAvailability(
+        start_date="2023-01-01",
+        end_date="2023-12-31",
+        sds_dir="/data/sds",
+        station="IJEN",
+        channel="EHZ",
+        network="VG",
+        location="00",
+        n_jobs=4,
+    )
+    .plot(title="IJEN EHZ Availability 2023")
+)
+fig.savefig("ijen_availability.png", dpi=150, bbox_inches="tight")
+```
+
 ## API reference
 
 ### `PlotAvailability(filepath)`
 
-Fluent builder class.
+Fluent builder class for Excel/CSV data.
 
 ```python
 fig = (
     PlotAvailability("data.xlsx")
-    .load_data(
+    .select(
         date_column="date",          # column name for dates
         completeness_column="completeness",  # column name for values (0–100)
         years=["2022", "2023"],      # filter to specific years (optional)
     )
-    .plot_availability(
+    .plot(
         title="Data Availability",
         tile_shape="square",         # "square" or "squircle"
         hspace=0.2,
@@ -79,9 +100,29 @@ fig = (
 )
 ```
 
+### `PlotSeismicAvailability(...)`
+
+Reads a SeisComP Data Structure (SDS) archive, computes per-day completeness,
+and renders the heatmap. Supports parallel processing via `n_jobs`.
+
+```python
+PlotSeismicAvailability(
+    start_date="2023-01-01",  # YYYY-MM-DD
+    end_date="2023-12-31",    # YYYY-MM-DD (inclusive)
+    sds_dir="/data/sds",      # root of the SDS archive
+    station="IJEN",
+    channel="EHZ",
+    network="VG",
+    location="00",
+    channel_type="D",         # SDS data-type qualifier (default "D")
+    n_jobs=1,                 # parallel workers (default 1 = serial)
+    verbose=False,
+).plot(title="IJEN EHZ")
+```
+
 ### `plot_from_file(filepath, **kwargs)` / `plot_from_df(df, **kwargs)`
 
-Functional alternatives that accept the same keyword arguments as `.plot_availability()` plus `date_column` and `completeness_column`.
+Functional alternatives that accept the same keyword arguments as `.plot()` plus `date_column` and `completeness_column`.
 
 ### `load_data(filepath, date_column, completeness_column)`
 
