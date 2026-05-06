@@ -11,18 +11,50 @@ from data_availability.plot import plot_from_df as _plot_from_df
 
 
 class PlotAvailability:
+    """Fluent builder for GitHub-style calendar heatmaps from file-based data.
+
+    Chain :meth:`select` then :meth:`plot` to load data and produce a figure.
+
+    Args:
+        filepath: Path to an ``.xlsx``, ``.xls``, or ``.csv`` file.
+
+    Example:
+        >>> fig = (
+        ...     PlotAvailability("data.xlsx")
+        ...     .select(years="2023")
+        ...     .plot(title="Sensor Uptime", tile_shape="squircle")
+        ... )
+        >>> fig.savefig("availability.png", dpi=150, bbox_inches="tight")
+    """
+
     def __init__(self, filepath: str | Path) -> None:
         self._filepath = Path(filepath)
         self._df: pd.DataFrame | None = None
         self._date_column: str = "date"
         self._completeness_column: str = "completeness"
 
-    def load_data(
+    def select(
         self,
         date_column: str = "date",
         completeness_column: str = "completeness",
         years: str | list[str] | None = None,
     ) -> PlotAvailability:
+        """Load and optionally filter data from the file supplied at construction.
+
+        Args:
+            date_column: Name of the date column in the source file.
+            completeness_column: Name of the completeness column (0–100) in the
+                source file.
+            years: One or more years to keep, e.g. ``"2023"`` or
+                ``["2022", "2023"]``. All years are kept when omitted.
+
+        Returns:
+            ``self`` — enables method chaining.
+
+        Raises:
+            KeyError: If the required columns are absent from the file.
+            ValueError: If ``years`` is specified but no matching rows exist.
+        """
         self._date_column = date_column
         self._completeness_column = completeness_column
         self._df = load_data(self._filepath, date_column, completeness_column)
@@ -36,7 +68,7 @@ class PlotAvailability:
                 )
         return self
 
-    def plot_availability(
+    def plot(
         self,
         title: str = "Data Availability",
         hspace: float = 0.2,
@@ -72,7 +104,11 @@ class PlotAvailability:
             RuntimeError: If :meth:`load_data` has not been called first.
         """
         if self._df is None:
-            raise RuntimeError("Call .load_data() before .plot_availability().")
+            self.select()
+
+        if self._df is None:
+            raise RuntimeError("Dataframe not loaded.")
+
         return _plot_from_df(
             self._df,
             title=title,
