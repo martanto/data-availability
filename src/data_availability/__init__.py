@@ -13,6 +13,7 @@ from importlib.metadata import version
 
 from data_availability.data import load_data
 from data_availability.plot import plot_from_df, plot_from_file
+from data_availability.logger import configure_logging
 from data_availability.availability import PlotAvailability
 from data_availability.seismic.plot_seismic import PlotSeismicAvailability
 
@@ -32,6 +33,7 @@ __all__ = [
     "__copyright__",
     "PlotAvailability",
     "PlotSeismicAvailability",
+    "configure_logging",
     "load_data",
     "plot_from_df",
     "plot_from_file",

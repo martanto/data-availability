@@ -13,7 +13,8 @@ _ERROR_LOG_RETENTION = "90 days"
 # Tracks whether logging is currently enabled.
 _logging_enabled: bool = True
 
-DEFAULT_LOG_DIR = ensure_dir(os.path.join(os.getcwd(), "logs"))
+# Default log directory — not created until logging is first configured.
+DEFAULT_LOG_DIR = os.path.join(os.getcwd(), "logs")
 
 _FILE_FORMAT = (
     "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
@@ -38,6 +39,7 @@ def _configure_handlers(log_dir: str, console_level: str = "INFO") -> None:
         console_level (str, optional): Log level for the console handler.
             Defaults to "INFO".
     """
+    ensure_dir(log_dir)
     logger.remove()
 
     logger.add(
@@ -68,9 +70,21 @@ def _configure_handlers(log_dir: str, console_level: str = "INFO") -> None:
     )
 
 
-# Skip if the parent process disabled logging (env var is inherited by workers).
-if os.environ.get("DISABLE_LOGGING") != "1":
-    _configure_handlers(DEFAULT_LOG_DIR)
+def configure_logging(log_dir: str | None = None, console_level: str = "INFO") -> None:
+    """Enable file + console logging for the package.
+
+    Must be called explicitly by the application; the library does **not** create
+    log files or directories on import.
+
+    Args:
+        log_dir: Directory for log files. Defaults to ``./logs`` relative to the
+            current working directory at call time.
+        console_level: Log level for the console handler (default ``"INFO"``).
+    """
+    global DEFAULT_LOG_DIR
+    if log_dir is not None:
+        DEFAULT_LOG_DIR = os.path.abspath(log_dir)
+    _configure_handlers(DEFAULT_LOG_DIR, console_level=console_level)
 
 
 def get_logger():

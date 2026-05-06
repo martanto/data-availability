@@ -101,13 +101,10 @@ class PlotAvailability:
             A :class:`matplotlib.figure.Figure` containing the heatmap.
 
         Raises:
-            RuntimeError: If :meth:`load_data` has not been called first.
+            RuntimeError: If :meth:`select` has not been called first.
         """
         if self._df is None:
-            self.select()
-
-        if self._df is None:
-            raise RuntimeError("Dataframe not loaded.")
+            raise RuntimeError("Call .select() before .plot().")
 
         return _plot_from_df(
             self._df,

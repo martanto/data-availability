@@ -32,6 +32,11 @@ class PlotSeismicAvailability:
         n_jobs: Number of parallel worker processes. Defaults to ``1`` (serial).
         verbose: When ``True``, emit detailed log messages during processing.
 
+    Note:
+        On Windows, Python's ``multiprocessing`` uses the ``spawn`` start method.
+        When using ``n_jobs > 1`` in a script, wrap the call inside
+        ``if __name__ == "__main__":`` to prevent recursive worker spawning.
+
     Example:
         >>> fig = (
         ...     PlotSeismicAvailability(
@@ -65,6 +70,8 @@ class PlotSeismicAvailability:
         self.start_date = to_datetime(start_date)
         self.end_date = to_datetime(end_date)
         self.dates = pd.date_range(self.start_date, self.end_date)
+        if n_jobs < 1:
+            raise ValueError("n_jobs must be >= 1")
         self.sds = SDS(
             sds_dir=sds_dir,
             station=station,
@@ -74,7 +81,6 @@ class PlotSeismicAvailability:
             channel_type=channel_type,
             verbose=verbose,
         )
-        self._df = pd.DataFrame()
         self.n_jobs = n_jobs
         self.verbose = verbose
 
@@ -89,8 +95,8 @@ class PlotSeismicAvailability:
             list[tuple[int, datetime]]: List of (job_index, date) tuples.
 
         Examples:
-            >>> tremor = CalculateTremor(start_date="2025-01-01", end_date="2025-01-03", station="OJN", channel="EHZ")
-            >>> print(len(tremor.jobs))  # 3 days
+            >>> psa = PlotSeismicAvailability(start_date="2025-01-01", end_date="2025-01-03", ...)
+            >>> print(len(psa._jobs))  # 3 days
         """
         return [(job_index, date) for job_index, date in enumerate(self.dates)]
 
@@ -105,7 +111,8 @@ class PlotSeismicAvailability:
             A dict with ``"date"`` (datetime) and ``"completeness"`` (float) keys.
         """
         date_str = date.strftime("%Y-%m-%d")
-        logger.info(f"Running Jobs ID: {job_index}. Date: {date_str}")
+        if self.verbose:
+            logger.info(f"Running job {job_index}: {date_str}")
         return {"date": date, "completeness": self.sds.get_completeness(date)}
 
     def plot(
@@ -148,19 +155,14 @@ class PlotSeismicAvailability:
         Raises:
             ValueError: If no completeness results are produced.
         """
-        results = None
         if self.n_jobs == 1:
             results = [self._get_completeness(*job) for job in self._jobs]
-
-        if self.n_jobs > 1:
+        else:
             if self.verbose:
                 logger.info(f"Running on {self.n_jobs} job(s)")
 
             with Pool(self.n_jobs) as pool:
                 results = pool.starmap(self._get_completeness, self._jobs)
-
-        if results is None:
-            raise ValueError(f"No results from {self.n_jobs} job(s)")
 
         df = pd.DataFrame(results)
         df = df[df["completeness"] > 0]
