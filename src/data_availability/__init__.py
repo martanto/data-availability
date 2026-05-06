@@ -14,6 +14,7 @@ from importlib.metadata import version
 from data_availability.data import load_data
 from data_availability.plot import plot_from_df, plot_from_file
 from data_availability.availability import PlotAvailability
+from data_availability.seismic.plot_seismic import PlotSeismicAvailability
 
 
 __version__ = version("data-availability")
@@ -30,6 +31,7 @@ __all__ = [
     "__license__",
     "__copyright__",
     "PlotAvailability",
+    "PlotSeismicAvailability",
     "load_data",
     "plot_from_df",
     "plot_from_file",
