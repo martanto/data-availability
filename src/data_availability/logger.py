@@ -25,7 +25,22 @@ _CONSOLE_FORMAT = (
     "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 )
 
+
+def _add_console_handler(level: str = "INFO") -> None:
+    """Add the stderr console handler at the given level."""
+    logger.add(
+        sys.stderr,
+        format=_CONSOLE_FORMAT,
+        level=level.upper(),
+        colorize=True,
+    )
+
+
+# Enable console logging by default so callers see output out of the box.
+# File logging is still opt-in via configure_logging() so the library never
+# creates directories or writes files on import.
 logger.remove()
+_add_console_handler()
 
 
 def _configure_handlers(log_dir: str, console_level: str = "INFO") -> None:
@@ -42,12 +57,7 @@ def _configure_handlers(log_dir: str, console_level: str = "INFO") -> None:
     ensure_dir(log_dir)
     logger.remove()
 
-    logger.add(
-        sys.stderr,
-        format=_CONSOLE_FORMAT,
-        level=console_level.upper(),
-        colorize=True,
-    )
+    _add_console_handler(console_level)
 
     logger.add(
         os.path.join(log_dir, "availability_{time:YYYY-MM-DD}.log"),
@@ -73,8 +83,9 @@ def _configure_handlers(log_dir: str, console_level: str = "INFO") -> None:
 def configure_logging(log_dir: str | None = None, console_level: str = "INFO") -> None:
     """Enable file + console logging for the package.
 
-    Must be called explicitly by the application; the library does **not** create
-    log files or directories on import.
+    Console logging is enabled automatically at import; call this to opt into
+    file logging as well (rotating daily log + errors log) and to tune the
+    console level. The log directory is created if it does not exist.
 
     Args:
         log_dir: Directory for log files. Defaults to ``./logs`` relative to the
@@ -139,13 +150,14 @@ def disable_logging() -> None:
 
 
 def enable_logging() -> None:
-    """Re-enable logging after a previous :func:`disable_logging` call.
+    """Re-enable console logging after a previous :func:`disable_logging` call.
 
-    Restore console and file handlers using the current ``DEFAULT_LOG_DIR``.
-    Has no effect if logging is already enabled.
+    Restores the default console handler at ``INFO`` level. To also restore
+    file handlers, call :func:`configure_logging` afterwards. Has no effect
+    if logging is already enabled.
     """
     global _logging_enabled
     if not _logging_enabled:
         _logging_enabled = True
         os.environ.pop("DISABLE_LOGGING", None)
-        _configure_handlers(DEFAULT_LOG_DIR)
+        _add_console_handler()

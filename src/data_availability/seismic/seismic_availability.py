@@ -1,18 +1,19 @@
 from typing import Literal
+from pathlib import Path
 from datetime import datetime
 from functools import cached_property
 from multiprocessing import Pool
 
 import pandas as pd
-from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
 
-from data_availability import plot_from_df
+from data_availability.plot import plot_from_df
 from data_availability.utils import to_datetime
 from data_availability.logger import logger
 from data_availability.seismic.sds import SDS
 
 
-class PlotSeismicAvailability:
+class SeismicAvailability:
     """Build a GitHub-style calendar heatmap from a SeisComP Data Structure (SDS) archive.
 
     Iterates over every day in ``[start_date, end_date]``, computes the
@@ -39,7 +40,7 @@ class PlotSeismicAvailability:
 
     Example:
         >>> fig = (
-        ...     PlotSeismicAvailability(
+        ...     SeismicAvailability(
         ...         start_date="2023-01-01",
         ...         end_date="2023-12-31",
         ...         sds_dir="/data/sds",
@@ -70,8 +71,6 @@ class PlotSeismicAvailability:
         self.start_date = to_datetime(start_date)
         self.end_date = to_datetime(end_date)
         self.dates = pd.date_range(self.start_date, self.end_date)
-        if n_jobs < 1:
-            raise ValueError("n_jobs must be >= 1")
         self.sds = SDS(
             sds_dir=sds_dir,
             station=station,
@@ -81,8 +80,38 @@ class PlotSeismicAvailability:
             channel_type=channel_type,
             verbose=verbose,
         )
-        self.n_jobs = n_jobs
+        self.df: pd.DataFrame = pd.DataFrame()
+        self.n_jobs = max(n_jobs, 1)
         self.verbose = verbose
+
+    def get_df(self) -> pd.DataFrame:
+        """Compute completeness for every day in the date range.
+
+        Runs jobs serially when ``n_jobs == 1``, or in parallel via
+        :class:`multiprocessing.Pool` otherwise. Result is cached after the
+        first call.
+
+        Returns:
+            DataFrame with ``nslc``, ``date``, ``filepath`` and
+            ``completeness`` columns, one row per day in the range.
+        """
+        if not self.df.empty:
+            return self.df
+
+        if self.n_jobs == 1:
+            results = [self._get_completeness(*job) for job in self._jobs]
+        else:
+            if self.verbose:
+                logger.info(f"Running on {self.n_jobs} job(s)")
+
+            with Pool(self.n_jobs) as pool:
+                results = pool.starmap(self._get_completeness, self._jobs)
+
+        if not results:
+            raise ValueError("Data not found.")
+
+        self.df = pd.DataFrame(results)
+        return self.df
 
     @cached_property
     def _jobs(self) -> list[tuple[int, datetime]]:
@@ -95,7 +124,7 @@ class PlotSeismicAvailability:
             list[tuple[int, datetime]]: List of (job_index, date) tuples.
 
         Examples:
-            >>> psa = PlotSeismicAvailability(start_date="2025-01-01", end_date="2025-01-03", ...)
+            >>> psa = SeismicAvailability(start_date="2025-01-01", end_date="2025-01-03", ...)
             >>> print(len(psa._jobs))  # 3 days
         """
         return [(job_index, date) for job_index, date in enumerate(self.dates)]
@@ -113,7 +142,40 @@ class PlotSeismicAvailability:
         date_str = date.strftime("%Y-%m-%d")
         if self.verbose:
             logger.info(f"Running job {job_index}: {date_str}")
-        return {"date": date, "completeness": self.sds.get_completeness(date)}
+        return {
+            "nslc": self.sds.nslc,
+            "date": date,
+            "filepath": self.sds.get_filepath(date),
+            "completeness": self.sds.get_completeness(date),
+        }
+
+    def to_json(self) -> list[dict]:
+        """Return completeness data as a list of records.
+
+        Returns:
+            List of dicts, each with ``"nslc"``, ``"date"``, ``"filepath"``
+            and ``"completeness"`` keys, suitable for JSON serialisation.
+        """
+        return self.get_df().to_dict(orient="records")
+
+    def to_excel(self, path: str | Path | None = None) -> Path:
+        """Save the completeness DataFrame to an Excel file.
+
+        Args:
+            path: Destination path. Defaults to
+                ``<nslc>_<start>-<end>.xlsx`` in the current working
+                directory.
+
+        Returns:
+            The resolved destination path.
+        """
+        if path is None:
+            suffix = f"{self.start_date.strftime('%Y-%m-%d')}-{self.end_date.strftime('%Y-%m-%d')}"
+            path = Path(f"{self.sds.nslc}_{suffix}.xlsx")
+        else:
+            path = Path(path)
+        self.get_df().to_excel(path, index=False)
+        return path
 
     def plot(
         self,
@@ -126,12 +188,14 @@ class PlotSeismicAvailability:
         missing_color: str = "#e0e0e0",
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
-    ) -> plt.Figure:
+    ) -> Figure:
         """Compute seismic completeness and render a calendar heatmap.
 
         Calculates completeness for every day in the configured date range,
         then passes the resulting DataFrame to :func:`~data_availability.plot.plot_from_df`.
-        Days with zero completeness are excluded from the figure.
+        Days with zero completeness are excluded from the figure so that
+        no-data days render as ``missing_color`` rather than at the bottom
+        of the color scale.
 
         Args:
             title: Figure super-title. Defaults to the NSLC string
@@ -155,16 +219,11 @@ class PlotSeismicAvailability:
         Raises:
             ValueError: If no completeness results are produced.
         """
-        if self.n_jobs == 1:
-            results = [self._get_completeness(*job) for job in self._jobs]
-        else:
-            if self.verbose:
-                logger.info(f"Running on {self.n_jobs} job(s)")
+        df = self.get_df()
 
-            with Pool(self.n_jobs) as pool:
-                results = pool.starmap(self._get_completeness, self._jobs)
+        if df.empty:
+            raise ValueError(f"No completeness results for {self.sds.nslc}")
 
-        df = pd.DataFrame(results)
         df = df[df["completeness"] > 0]
 
         return plot_from_df(

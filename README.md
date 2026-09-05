@@ -54,23 +54,30 @@ fig = plot_from_df(df, title="My Data")
 ### Seismic SDS data
 
 ```python
-from data_availability import PlotSeismicAvailability
+from data_availability import SeismicAvailability
 
-fig = (
-    PlotSeismicAvailability(
-        start_date="2023-01-01",
-        end_date="2023-12-31",
-        sds_dir="/data/sds",
-        station="IJEN",
-        channel="EHZ",
-        network="VG",
-        location="00",
-        n_jobs=4,
-    )
-    .plot(title="IJEN EHZ Availability 2023")
+sa = SeismicAvailability(
+    start_date="2023-01-01",
+    end_date="2023-12-31",
+    sds_dir="/data/sds",
+    station="IJEN",
+    channel="EHZ",
+    network="VG",
+    location="00",
+    n_jobs=4,
 )
+
+fig = sa.plot(title="IJEN EHZ Availability 2023")
 fig.savefig("ijen_availability.png", dpi=150, bbox_inches="tight")
+
+# Optional: persist the per-day completeness DataFrame
+sa.to_excel()               # writes <NSLC>_<start>-<end>.xlsx into CWD
+sa.to_excel("ijen.xlsx")    # or pass an explicit path
+records = sa.to_json()      # or serialise to JSON records
 ```
+
+> On Windows, wrap the call in `if __name__ == "__main__":` when using
+> `n_jobs > 1` — Python's `spawn` start method requires it.
 
 ## API reference
 
@@ -100,13 +107,13 @@ fig = (
 )
 ```
 
-### `PlotSeismicAvailability(...)`
+### `SeismicAvailability(...)`
 
 Reads a SeisComP Data Structure (SDS) archive, computes per-day completeness,
 and renders the heatmap. Supports parallel processing via `n_jobs`.
 
 ```python
-PlotSeismicAvailability(
+sa = SeismicAvailability(
     start_date="2023-01-01",  # YYYY-MM-DD
     end_date="2023-12-31",    # YYYY-MM-DD (inclusive)
     sds_dir="/data/sds",      # root of the SDS archive
@@ -117,8 +124,17 @@ PlotSeismicAvailability(
     channel_type="D",         # SDS data-type qualifier (default "D")
     n_jobs=1,                 # parallel workers (default 1 = serial)
     verbose=False,
-).plot(title="IJEN EHZ")
+)
+
+sa.plot(title="IJEN EHZ")    # returns a matplotlib Figure
+sa.get_df()                  # DataFrame: nslc, date, filepath, completeness
+sa.to_json()                 # list of records
+sa.to_excel(path=None)       # write DataFrame to Excel; default filename in CWD
 ```
+
+`.plot()` filters out zero-completeness days so no-data days render as
+`missing_color` (grey) rather than at the bottom of the colormap (red).
+Call `.get_df()` if you want the unfiltered per-day results.
 
 ### `plot_from_file(filepath, **kwargs)` / `plot_from_df(df, **kwargs)`
 
@@ -127,6 +143,20 @@ Functional alternatives that accept the same keyword arguments as `.plot()` plus
 ### `load_data(filepath, date_column, completeness_column)`
 
 Load and normalize an Excel or CSV file into a DataFrame ready for plotting.
+
+## Logging
+
+A stderr console handler at `INFO` level is attached automatically on
+import — you don't need to configure anything to see log output. Opt into
+rotating daily file logs (general + errors) by calling `configure_logging`:
+
+```python
+from data_availability import configure_logging
+
+configure_logging(log_dir="./logs", console_level="DEBUG")
+```
+
+The library never creates directories or writes files on import.
 
 ## Input format
 

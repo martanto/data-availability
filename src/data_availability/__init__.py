@@ -15,7 +15,7 @@ from data_availability.data import load_data
 from data_availability.plot import plot_from_df, plot_from_file
 from data_availability.logger import configure_logging
 from data_availability.availability import PlotAvailability
-from data_availability.seismic.plot_seismic import PlotSeismicAvailability
+from data_availability.seismic.seismic_availability import SeismicAvailability
 
 
 __version__ = version("data-availability")
@@ -32,7 +32,7 @@ __all__ = [
     "__license__",
     "__copyright__",
     "PlotAvailability",
-    "PlotSeismicAvailability",
+    "SeismicAvailability",
     "configure_logging",
     "load_data",
     "plot_from_df",

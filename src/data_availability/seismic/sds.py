@@ -145,7 +145,7 @@ class SDS:
             trace: Trace = stream[0]
             n_samples = len(trace.data)
             sampling_rate = trace.stats.sampling_rate
-            duration = n_samples / sampling_rate if sampling_rate > 0 else 0
+            duration = float(n_samples / sampling_rate) if sampling_rate > 0 else 0.0
 
             logger.debug(f"{date_str} :: Stream loaded successfully")
             logger.info(
@@ -207,11 +207,11 @@ class SDS:
 
         sampling_rate = trace.stats.sampling_rate
         daily_sampling_rate = sampling_rate * 60 * 60 * 24
-        non_zero: float = np.round(
+        completeness: float = np.round(
             (np.count_nonzero(trace.data) / daily_sampling_rate) * 100, 2
         )
 
         if self.verbose:
-            logger.info(f"{date_str} :: Completeness: {non_zero}%")
+            logger.info(f"{date_str} :: Completeness: {completeness}%")
 
-        return float(non_zero)
+        return float(completeness)
