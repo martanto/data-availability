@@ -56,7 +56,7 @@ def _build_figure(
     Returns:
         A :class:`matplotlib.figure.Figure` containing the heatmap.
     """
-    years = sorted(df[date_column].dt.year.unique())
+    years: list[str] = sorted(df[date_column].dt.year.unique())
     n_years = len(years)
 
     fig, axes = plt.subplots(n_years, 1, figsize=(20, n_years * figsize_per_year))
@@ -182,7 +182,9 @@ def _build_figure(
     cbar.ax.tick_params(labelsize=8)
 
     title_pad_fraction = title_pad / fig_height_px
-    fig.suptitle(title, fontsize=13, fontweight="bold", y=pos_first.y1 + title_pad_fraction)
+    fig.suptitle(
+        title, fontsize=13, fontweight="bold", y=pos_first.y1 + title_pad_fraction
+    )
 
     return fig
 
