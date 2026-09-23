@@ -1,5 +1,11 @@
 # data-availability
 
+[![Version](https://img.shields.io/pypi/v/data-availability?label=version)](https://pypi.org/project/data-availability/)
+[![Python](https://img.shields.io/pypi/pyversions/data-availability?label=python)](https://pypi.org/project/data-availability/)
+[![License](https://img.shields.io/pypi/l/data-availability?label=license)](https://pypi.org/project/data-availability/)
+[![Status](https://img.shields.io/badge/status-active%20development-orange)](https://github.com/martanto/data-availability)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/data-availability?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/data-availability)
+
 Calendar heatmaps and daily bar strips that show data completeness over time.
 
 Use it to monitor instrument data quality or to track the availability of any time series. It returns a matplotlib `Figure` with one subplot per calendar year, with each day colored on a red-yellow-green gradient by its completeness.
