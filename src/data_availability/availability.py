@@ -58,50 +58,62 @@ class PlotAvailability:
         self._date_column = date_column
         self._completeness_column = completeness_column
         self._df = load_data(self._filepath, date_column, completeness_column)
+
         if years is not None:
             selected = [str(y) for y in ([years] if isinstance(years, str) else years)]
             mask = self._df[date_column].dt.year.astype(str).isin(selected)
             self._df = self._df[mask].reset_index(drop=True)
-            if isinstance(self._df, pd.DataFrame) and self._df.empty:
-                raise ValueError(
-                    f"No data found for the specified year(s): {selected}."
-                )
+
+        if isinstance(self._df, pd.DataFrame) and self._df.empty:
+            raise ValueError("No data found.")
+
         return self
 
     def plot(
         self,
         title: str = "Data Availability",
-        hspace: float = 0.2,
+        kind: Literal["calendar", "bar"] = "calendar",
+        hspace: float | None = None,
         cbar_bottom: int = 20,
         cbar_height: int = 10,
         tile_gap: float = 0.9,
-        figsize_per_year: float = 2.2,
+        figsize_per_year: float | None = None,
+        fig_width: float = 20.0,
         missing_color: str = "#e0e0e0",
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
+        bar_gap: float = 0.8,
     ) -> plt.Figure:
-        """Build a GitHub-style calendar heatmap of data completeness over time.
+        """Build a figure of data completeness over time.
 
         Args:
             title: Figure super-title rendered above all subplots.
-            hspace: Vertical spacing between year subplots.
-            cbar_bottom: Gap in pixels between the bottom edge of the last subplot
-                and the top of the colorbar.
+            kind: ``"calendar"`` for a GitHub-style heatmap; ``"bar"`` for a
+                status-page style daily bar strip.
+            hspace: Vertical spacing between year subplots. Defaults to
+                ``0.2`` for calendar and ``1.4`` for bar.
+            cbar_bottom: Gap in pixels between the bottom edge of the last
+                subplot (for bar, its month labels) and the colorbar.
             cbar_height: Height of the colorbar in pixels.
-            tile_gap: Side length of each day tile (values < 1 add whitespace
-                between tiles).
-            figsize_per_year: Figure height in inches allocated per year subplot.
+            tile_gap: Calendar only. Side length of each day tile (values < 1
+                add whitespace between tiles).
+            figsize_per_year: Figure height in inches allocated per year
+                subplot. Defaults to ``2.2`` for calendar and ``1.2`` for bar.
+            fig_width: Figure width in inches. Defaults to ``20``.
             missing_color: Color used for calendar days absent from the input data.
-            tile_shape: Shape of each day tile. ``"square"`` draws plain rectangles;
+            tile_shape: Calendar only. ``"square"`` draws plain rectangles;
                 ``"squircle"`` draws rectangles with rounded corners.
-            title_pad: Gap in pixels between the top of the last subplot and the
-                figure super-title.
+            title_pad: Gap in pixels between the top of the first subplot and
+                the figure super-title.
+            bar_gap: Bar only. Width of each day bar (values < 1 add
+                whitespace between bars).
 
         Returns:
-            A :class:`matplotlib.figure.Figure` containing the heatmap.
+            A :class:`matplotlib.figure.Figure`.
 
         Raises:
             RuntimeError: If :meth:`select` has not been called first.
+            ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``.
         """
         if self._df is None:
             raise RuntimeError("Call .select() before .plot().")
@@ -111,12 +123,15 @@ class PlotAvailability:
             title=title,
             date_column=self._date_column,
             completeness_column=self._completeness_column,
+            kind=kind,
             hspace=hspace,
             cbar_bottom=cbar_bottom,
             cbar_height=cbar_height,
             tile_gap=tile_gap,
             figsize_per_year=figsize_per_year,
+            fig_width=fig_width,
             missing_color=missing_color,
             tile_shape=tile_shape,
             title_pad=title_pad,
+            bar_gap=bar_gap,
         )

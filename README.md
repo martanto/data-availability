@@ -1,13 +1,21 @@
 # data-availability
 
-GitHub contribution-style calendar heatmaps for data completeness over time.
+Calendar heatmaps and daily bar strips that show data completeness over time.
 
-Useful for monitoring instrument data quality or any time-series availability tracking. Generates a matplotlib `Figure` with one subplot per calendar year, each day rendered as a color-coded tile on a red-yellow-green gradient.
+Use it to monitor instrument data quality or to track the availability of any time series. It returns a matplotlib `Figure` with one subplot per calendar year, with each day colored on a red-yellow-green gradient by its completeness.
 
 **Input**: Excel (`.xlsx`/`.xls`) or CSV with `date` and `completeness` (0–100) columns.  
 **Output**: A `matplotlib.figure.Figure` — save or display as needed.
 
-![Availability of IJEN](https://raw.githubusercontent.com/martanto/data-availability/refs/heads/dev/init/assets/output.png)
+There are two kinds of figure:
+
+- **`kind="calendar"`** (default): a GitHub contribution-style heatmap, with one tile per day on a Mon–Sun × week grid.
+
+  ![Calendar heatmap of IJEN availability](https://raw.githubusercontent.com/martanto/data-availability/refs/heads/main/assets/output.png)
+
+- **`kind="bar"`**: a status-page style strip, with one thin bar per day and month labels underneath.
+
+  ![Daily bar strip of IJEN availability](https://raw.githubusercontent.com/martanto/data-availability/refs/heads/main/assets/output-bar.png)
 
 ## Installation
 
@@ -35,6 +43,14 @@ fig = (
     .plot(title="Sensor Uptime", tile_shape="squircle")
 )
 plt.savefig("availability.png", dpi=150, bbox_inches="tight")
+
+# Same data as a daily bar strip
+fig = (
+    PlotAvailability("data.xlsx")
+    .select(years=["2022", "2023"])
+    .plot(title="Sensor Uptime", kind="bar", fig_width=10)
+)
+fig.savefig("availability-bar.png", dpi=150, bbox_inches="tight")
 ```
 
 ### One-call helpers
@@ -70,6 +86,8 @@ sa = SeismicAvailability(
 fig = sa.plot(title="IJEN EHZ Availability 2023")
 fig.savefig("ijen_availability.png", dpi=150, bbox_inches="tight")
 
+fig = sa.plot(title="IJEN EHZ Availability 2023", kind="bar")
+
 # Optional: persist the per-day completeness DataFrame
 sa.to_excel()               # writes <NSLC>_<start>-<end>.xlsx into CWD
 sa.to_excel("ijen.xlsx")    # or pass an explicit path
@@ -95,17 +113,23 @@ fig = (
     )
     .plot(
         title="Data Availability",
-        tile_shape="square",         # "square" or "squircle"
-        hspace=0.2,
-        figsize_per_year=2.2,
-        missing_color="#e0e0e0",
-        cbar_bottom=20,
-        cbar_height=10,
-        tile_gap=0.9,
-        title_pad=40,
+        kind="calendar",             # "calendar" (heatmap) or "bar" (daily strip)
+        hspace=None,                 # default: 0.2 calendar, 1.4 bar
+        figsize_per_year=None,       # inches per year; default: 2.2 calendar, 1.2 bar
+        fig_width=20.0,              # figure width in inches
+        missing_color="#e0e0e0",     # days absent from the data
+        cbar_bottom=20,              # px between last subplot and colorbar
+        cbar_height=10,              # colorbar height in px
+        title_pad=40,                # px between first subplot and title
+        tile_shape="square",         # calendar only: "square" or "squircle"
+        tile_gap=0.9,                # calendar only: tile size (< 1 adds gaps)
+        bar_gap=0.8,                 # bar only: bar width (< 1 adds gaps)
     )
 )
 ```
+
+`tile_shape` and `tile_gap` are ignored when `kind="bar"`, and `bar_gap` is
+ignored when `kind="calendar"`. Any other `kind` raises `ValueError`.
 
 ### `SeismicAvailability(...)`
 
@@ -126,19 +150,24 @@ sa = SeismicAvailability(
     verbose=False,
 )
 
-sa.plot(title="IJEN EHZ")    # returns a matplotlib Figure
+sa.plot(title="IJEN EHZ")    # returns a matplotlib Figure; accepts the same
+                             # kwargs as PlotAvailability.plot() (title defaults to NSLC)
 sa.get_df()                  # DataFrame: nslc, date, filepath, completeness
 sa.to_json()                 # list of records
 sa.to_excel(path=None)       # write DataFrame to Excel; default filename in CWD
 ```
 
-`.plot()` filters out zero-completeness days so no-data days render as
-`missing_color` (grey) rather than at the bottom of the colormap (red).
-Call `.get_df()` if you want the unfiltered per-day results.
+With `kind="calendar"`, `.plot()` drops zero-completeness days, so days
+with no data render as `missing_color` (grey) instead of red at the bottom
+of the colormap. With `kind="bar"`, those days are kept and render red, so
+outages stand out in the strip. Call `.get_df()` for the unfiltered per-day
+results.
 
 ### `plot_from_file(filepath, **kwargs)` / `plot_from_df(df, **kwargs)`
 
-Functional alternatives that accept the same keyword arguments as `.plot()` plus `date_column` and `completeness_column`.
+Functional alternatives that accept the same keyword arguments as `.plot()` (including `kind`) plus `date_column` and `completeness_column`.
+
+These don't filter out zero-completeness rows, so those days render red in both kinds.
 
 ### `load_data(filepath, date_column, completeness_column)`
 
@@ -173,7 +202,7 @@ Column names are configurable via `date_column` / `completeness_column` paramete
 # Install with dev extras
 uv sync --group dev
 
-# Run the example
+# Run the example (writes output.png and output-bar.png)
 uv run main.py
 
 # Lint and format
