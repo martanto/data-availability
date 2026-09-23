@@ -180,55 +180,74 @@ class SeismicAvailability:
     def plot(
         self,
         title: str | None = None,
-        hspace: float = 0.2,
+        kind: Literal["calendar", "bar"] = "calendar",
+        hspace: float | None = None,
         cbar_bottom: int = 20,
         cbar_height: int = 10,
         tile_gap: float = 0.9,
-        figsize_per_year: float = 2.2,
+        figsize_per_year: float | None = None,
         missing_color: str = "#e0e0e0",
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
+        healthy_threshold: float = 90.0,
+        status_colors: tuple[str, str, str] = ("#3fd15b", "#ffee00", "#f25c5c"),
+        status_labels: tuple[str, str, str] = ("Healthy", "Issue", "Downtime"),
+        bar_gap: float = 0.8,
     ) -> Figure:
-        """Compute seismic completeness and render a calendar heatmap.
+        """Compute seismic completeness and render a completeness figure.
 
         Calculates completeness for every day in the configured date range,
         then passes the resulting DataFrame to :func:`~data_availability.plot.plot_from_df`.
-        Days with zero completeness are excluded from the figure so that
-        no-data days render as ``missing_color`` rather than at the bottom
-        of the color scale.
+        For ``kind="calendar"``, days with zero completeness are excluded so
+        that no-data days render as ``missing_color`` rather than at the
+        bottom of the color scale. For ``kind="bar"``, they are kept and
+        render as downtime.
 
         Args:
             title: Figure super-title. Defaults to the NSLC string
                 (e.g. ``"VG.IJEN.00.EHZ"``).
-            hspace: Vertical spacing between year subplots.
-            cbar_bottom: Gap in pixels between the bottom of the last subplot
-                and the top of the colorbar.
-            cbar_height: Height of the colorbar in pixels.
-            tile_gap: Side length of each day tile; values less than 1 add
-                whitespace between tiles.
-            figsize_per_year: Figure height in inches allocated per year subplot.
+            kind: ``"calendar"`` for a GitHub-style heatmap; ``"bar"`` for a
+                status-page style daily bar strip.
+            hspace: Vertical spacing between year subplots. Defaults to
+                ``0.2`` for calendar and ``1.4`` for bar.
+            cbar_bottom: Calendar only. Gap in pixels between the bottom of
+                the last subplot and the top of the colorbar.
+            cbar_height: Calendar only. Height of the colorbar in pixels.
+            tile_gap: Calendar only. Side length of each day tile; values less
+                than 1 add whitespace between tiles.
+            figsize_per_year: Figure height in inches allocated per year
+                subplot. Defaults to ``2.2`` for calendar and ``1.2`` for bar.
             missing_color: Color for calendar days absent from the dataset.
-            tile_shape: ``"square"`` for plain rectangles; ``"squircle"`` for
-                rounded corners.
+            tile_shape: Calendar only. ``"square"`` for plain rectangles;
+                ``"squircle"`` for rounded corners.
             title_pad: Gap in pixels between the top of the first subplot and
                 the figure super-title.
+            healthy_threshold: Bar only. Minimum completeness (0–100) for a
+                day to count as healthy.
+            status_colors: Bar only. Healthy, issue and downtime colors.
+            status_labels: Bar only. Healthy, issue and downtime legend labels.
+            bar_gap: Bar only. Width of each day bar; values less than 1 add
+                whitespace between bars.
 
         Returns:
-            A :class:`matplotlib.figure.Figure` containing the heatmap.
+            A :class:`matplotlib.figure.Figure`.
 
         Raises:
-            ValueError: If no completeness results are produced.
+            ValueError: If no completeness results are produced, or if
+                ``kind`` is not ``"calendar"`` or ``"bar"``.
         """
         df = self.get_df()
 
         if df.empty:
             raise ValueError(f"No completeness results for {self.sds.nslc}")
 
-        df = df[df["completeness"] > 0]
+        if kind == "calendar":
+            df = df[df["completeness"] > 0]
 
         return plot_from_df(
             df,
             title=title or self.sds.nslc,
+            kind=kind,
             hspace=hspace,
             cbar_bottom=cbar_bottom,
             cbar_height=cbar_height,
@@ -237,4 +256,8 @@ class SeismicAvailability:
             missing_color=missing_color,
             tile_shape=tile_shape,
             title_pad=title_pad,
+            healthy_threshold=healthy_threshold,
+            status_colors=status_colors,
+            status_labels=status_labels,
+            bar_gap=bar_gap,
         )
