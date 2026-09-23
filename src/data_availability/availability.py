@@ -78,12 +78,10 @@ class PlotAvailability:
         cbar_height: int = 10,
         tile_gap: float = 0.9,
         figsize_per_year: float | None = None,
+        fig_width: float = 20.0,
         missing_color: str = "#e0e0e0",
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
-        healthy_threshold: float = 90.0,
-        status_colors: tuple[str, str, str] = ("#3fd15b", "#ffee00", "#f25c5c"),
-        status_labels: tuple[str, str, str] = ("Healthy", "Issue", "Downtime"),
         bar_gap: float = 0.8,
     ) -> plt.Figure:
         """Build a figure of data completeness over time.
@@ -94,22 +92,19 @@ class PlotAvailability:
                 status-page style daily bar strip.
             hspace: Vertical spacing between year subplots. Defaults to
                 ``0.2`` for calendar and ``1.4`` for bar.
-            cbar_bottom: Calendar only. Gap in pixels between the bottom edge
-                of the last subplot and the top of the colorbar.
-            cbar_height: Calendar only. Height of the colorbar in pixels.
+            cbar_bottom: Gap in pixels between the bottom edge of the last
+                subplot (for bar, its month labels) and the colorbar.
+            cbar_height: Height of the colorbar in pixels.
             tile_gap: Calendar only. Side length of each day tile (values < 1
                 add whitespace between tiles).
             figsize_per_year: Figure height in inches allocated per year
                 subplot. Defaults to ``2.2`` for calendar and ``1.2`` for bar.
+            fig_width: Figure width in inches. Defaults to ``20``.
             missing_color: Color used for calendar days absent from the input data.
             tile_shape: Calendar only. ``"square"`` draws plain rectangles;
                 ``"squircle"`` draws rectangles with rounded corners.
             title_pad: Gap in pixels between the top of the first subplot and
                 the figure super-title.
-            healthy_threshold: Bar only. Minimum completeness (0–100) for a
-                day to count as healthy.
-            status_colors: Bar only. Healthy, issue and downtime colors.
-            status_labels: Bar only. Healthy, issue and downtime legend labels.
             bar_gap: Bar only. Width of each day bar (values < 1 add
                 whitespace between bars).
 
@@ -134,11 +129,9 @@ class PlotAvailability:
             cbar_height=cbar_height,
             tile_gap=tile_gap,
             figsize_per_year=figsize_per_year,
+            fig_width=fig_width,
             missing_color=missing_color,
             tile_shape=tile_shape,
             title_pad=title_pad,
-            healthy_threshold=healthy_threshold,
-            status_colors=status_colors,
-            status_labels=status_labels,
             bar_gap=bar_gap,
         )
