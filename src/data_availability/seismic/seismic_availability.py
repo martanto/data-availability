@@ -2,6 +2,7 @@ from typing import Literal
 from pathlib import Path
 from datetime import datetime
 from functools import cached_property
+from collections.abc import Sequence
 from multiprocessing import Pool
 
 import pandas as pd
@@ -191,6 +192,7 @@ class SeismicAvailability:
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
         bar_gap: float = 0.8,
+        color_bins: int | Sequence[float] | None = None,
     ) -> Figure:
         """Compute seismic completeness and render a completeness figure.
 
@@ -223,13 +225,17 @@ class SeismicAvailability:
                 the figure super-title.
             bar_gap: Bar only. Width of each day bar; values less than 1 add
                 whitespace between bars.
+            color_bins: ``None`` for a continuous color scale; an ``int`` N
+                for N equal-width completeness bins; or a list of bin edges
+                from 0 to 100, e.g. ``[0, 20, 40, 60, 80, 100]``.
 
         Returns:
             A :class:`matplotlib.figure.Figure`.
 
         Raises:
             ValueError: If no completeness results are produced, or if
-                ``kind`` is not ``"calendar"`` or ``"bar"``.
+                ``kind`` is not ``"calendar"`` or ``"bar"``, or if
+                ``color_bins`` is invalid.
         """
         df = self.get_df()
 
@@ -253,4 +259,5 @@ class SeismicAvailability:
             tile_shape=tile_shape,
             title_pad=title_pad,
             bar_gap=bar_gap,
+            color_bins=color_bins,
         )
