@@ -130,12 +130,24 @@ fig = (
         tile_shape="square",         # calendar only: "square" or "squircle"
         tile_gap=0.9,                # calendar only: tile size (< 1 adds gaps)
         bar_gap=0.8,                 # bar only: bar width (< 1 adds gaps)
+        color_bins=None,             # None = continuous; int or edge list = discrete bins
     )
 )
 ```
 
 `tile_shape` and `tile_gap` are ignored when `kind="bar"`, and `bar_gap` is
 ignored when `kind="calendar"`. Any other `kind` raises `ValueError`.
+
+`color_bins` changes the continuous color scale into discrete completeness classes.
+It works for both kinds and on every `plot*` entry point:
+
+```python
+.plot(color_bins=5)                     # 0–20, 20–40, 40–60, 60–80, 80–100
+.plot(color_bins=4)                     # 0–25, 25–50, 50–75, 75–100
+.plot(color_bins=[0, 50, 80, 95, 100])  # custom edges (must start at 0, end at 100)
+```
+
+Each bin covers `[lo, hi)`, except that exactly 100% falls in the top bin.
 
 ### `SeismicAvailability(...)`
 
