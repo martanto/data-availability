@@ -1,5 +1,6 @@
 from typing import Literal
 from pathlib import Path
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,57 @@ _DEFAULT_FIGSIZE_PER_YEAR: dict[str, float] = {"calendar": 2.2, "bar": 1.2}
 _DEFAULT_HSPACE: dict[str, float] = {"calendar": 0.2, "bar": 1.4}
 
 
+def _resolve_color_scale(
+    color_bins: int | Sequence[float] | None,
+) -> tuple[mcolors.Colormap, mcolors.Normalize]:
+    """Return the colormap and norm for a continuous or binned color scale.
+
+    ``None`` returns the continuous red-yellow-green gradient. Otherwise the
+    0–100 range is split into discrete bins, each colored with one evenly
+    spaced sample of the same gradient. Bins are half-open ``[lo, hi)``,
+    except that exactly ``100`` falls in the top bin.
+
+    Args:
+        color_bins: ``None`` for a continuous scale; an ``int`` N for N
+            equal-width bins over 0–100; or a sequence of bin edges that
+            starts at 0, ends at 100, and is strictly increasing.
+
+    Raises:
+        ValueError: If an ``int`` is less than 2, or if the edges have fewer
+            than 3 values, are not strictly increasing, or do not span
+            exactly 0–100.
+
+    Returns:
+        tuple[mcolors.Colormap, mcolors.Normalize]: The colormap and norm.
+
+    Example:
+        >>> cmap, norm = _resolve_color_scale(5)
+        >>> list(norm.boundaries)
+        [0.0, 20.0, 40.0, 60.0, 80.0, 100.0]
+    """
+    if color_bins is None:
+        return _CMAP, _NORM
+
+    if isinstance(color_bins, bool):
+        raise ValueError(f"color_bins must be an int or a sequence, got {color_bins}")
+
+    if isinstance(color_bins, int):
+        if color_bins < 2:
+            raise ValueError(f"color_bins must be at least 2, got {color_bins}")
+        edges = np.linspace(0, 100, color_bins + 1)
+    else:
+        edges = np.asarray(color_bins, dtype=float)
+        if edges.ndim != 1 or len(edges) < 3:
+            raise ValueError("color_bins edges must contain at least 3 values")
+        if np.any(np.diff(edges) <= 0):
+            raise ValueError("color_bins edges must be strictly increasing")
+        if edges[0] != 0 or edges[-1] != 100:
+            raise ValueError("color_bins edges must start at 0 and end at 100")
+
+    n_bins = len(edges) - 1
+    return _CMAP.resampled(n_bins), mcolors.BoundaryNorm(edges, n_bins, clip=True)
+
+
 def _add_colorbar_and_title(
     fig: plt.Figure,
     axes: list[plt.Axes],
@@ -27,6 +79,8 @@ def _add_colorbar_and_title(
     cbar_height: int,
     title: str,
     title_pad: int,
+    cmap: mcolors.Colormap,
+    norm: mcolors.Normalize,
 ) -> None:
     """Attach the completeness colorbar and the figure super-title.
 
@@ -41,6 +95,9 @@ def _add_colorbar_and_title(
         title: Figure super-title.
         title_pad: Gap in pixels between the top of the first subplot and the
             super-title.
+        cmap: Colormap used for the day colors.
+        norm: Norm used for the day colors. A ``BoundaryNorm`` puts ticks on
+            its bin edges.
     """
     pos_last = axes[-1].get_position()
     pos_first = axes[0].get_position()
@@ -59,9 +116,11 @@ def _add_colorbar_and_title(
         ]
     )
 
-    sm = plt.cm.ScalarMappable(cmap=_CMAP, norm=_NORM)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
     cbar = fig.colorbar(sm, cax=cbar_ax, orientation="horizontal")
+    if isinstance(norm, mcolors.BoundaryNorm):
+        cbar.set_ticks(norm.boundaries.tolist())
     cbar.set_label("Completeness (%)", fontsize=9)
     cbar.ax.tick_params(labelsize=8)
 
@@ -85,6 +144,8 @@ def _build_figure(
     missing_color: str,
     tile_shape: Literal["square", "squircle"],
     title_pad: int,
+    cmap: mcolors.Colormap,
+    norm: mcolors.Normalize,
 ) -> plt.Figure:
     """Render a GitHub-style calendar heatmap from a pre-validated DataFrame.
 
@@ -115,6 +176,8 @@ def _build_figure(
             rectangles with rounded corners.
         title_pad: Gap in pixels between the top of the first subplot and the
             figure super-title.
+        cmap: Colormap used for the day tiles.
+        norm: Norm mapping completeness to ``cmap``.
 
     Returns:
         A :class:`matplotlib.figure.Figure` containing the heatmap.
@@ -160,7 +223,7 @@ def _build_figure(
                 if not has_data[row, col]:
                     continue
                 val = grid[row, col]
-                color = missing_color if np.isnan(val) else _CMAP(_NORM(val))
+                color = missing_color if np.isnan(val) else cmap(norm(val))
                 if tile_shape == "squircle":
                     patch = mpatches.FancyBboxPatch(
                         (col, 6 - row),
@@ -224,6 +287,8 @@ def _build_figure(
         cbar_height=cbar_height,
         title=title,
         title_pad=title_pad,
+        cmap=cmap,
+        norm=norm,
     )
 
     return fig
@@ -242,6 +307,8 @@ def _build_bar_figure(
     missing_color: str,
     bar_gap: float,
     title_pad: int,
+    cmap: mcolors.Colormap,
+    norm: mcolors.Normalize,
 ) -> plt.Figure:
     """Render a status-page style daily bar strip from a pre-validated DataFrame.
 
@@ -270,6 +337,8 @@ def _build_bar_figure(
             between bars.
         title_pad: Gap in pixels between the top of the first subplot and the
             figure super-title.
+        cmap: Colormap used for the day bars.
+        norm: Norm mapping completeness to ``cmap``.
 
     Returns:
         A :class:`matplotlib.figure.Figure` containing the bar strips.
@@ -294,9 +363,7 @@ def _build_bar_figure(
         )
 
         missing_rgba = mcolors.to_rgba(missing_color)
-        colors = [
-            missing_rgba if np.isnan(val) else _CMAP(_NORM(val)) for val in values
-        ]
+        colors = [missing_rgba if np.isnan(val) else cmap(norm(val)) for val in values]
 
         ax.bar(
             np.arange(len(year_dates)),
@@ -337,6 +404,8 @@ def _build_bar_figure(
         cbar_height=cbar_height,
         title=title,
         title_pad=title_pad,
+        cmap=cmap,
+        norm=norm,
     )
 
     return fig
@@ -358,6 +427,7 @@ def plot_from_file(
     tile_shape: Literal["square", "squircle"] = "square",
     title_pad: int = 40,
     bar_gap: float = 0.8,
+    color_bins: int | Sequence[float] | None = None,
 ) -> plt.Figure:
     """Build a data completeness figure from a file.
 
@@ -384,13 +454,17 @@ def plot_from_file(
         title_pad: Gap in pixels between the first subplot and the
             super-title.
         bar_gap: Bar only. Width of each day bar.
+        color_bins: ``None`` for a continuous color scale; an ``int`` N for N
+            equal-width completeness bins; or a list of bin edges from 0 to
+            100, e.g. ``[0, 20, 40, 60, 80, 100]``.
 
     Returns:
         A :class:`matplotlib.figure.Figure`. The figure is not saved or
         displayed; call ``fig.savefig()`` or ``plt.show()`` afterwards.
 
     Raises:
-        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``.
+        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, or if
+            ``color_bins`` is invalid.
     """
     df = load_data(
         filepath, date_column=date_column, completeness_column=completeness_column
@@ -411,6 +485,7 @@ def plot_from_file(
         tile_shape=tile_shape,
         title_pad=title_pad,
         bar_gap=bar_gap,
+        color_bins=color_bins,
     )
 
 
@@ -430,6 +505,7 @@ def plot_from_df(
     tile_shape: Literal["square", "squircle"] = "square",
     title_pad: int = 40,
     bar_gap: float = 0.8,
+    color_bins: int | Sequence[float] | None = None,
 ) -> plt.Figure:
     """Build a data completeness figure from an in-memory DataFrame.
 
@@ -470,16 +546,28 @@ def plot_from_df(
             figure super-title.
         bar_gap: Bar only. Width of each day bar; values less than 1 add
             whitespace between bars.
+        color_bins: ``None`` (default) for a continuous color scale. An
+            ``int`` N splits 0–100 into N equal-width bins (``5`` gives 20%
+            steps). A sequence gives custom bin edges that start at 0, end at
+            100, and increase strictly, e.g. ``[0, 50, 80, 100]``. Each bin
+            covers ``[lo, hi)``, except that 100 falls in the top bin.
 
     Returns:
         A :class:`matplotlib.figure.Figure`. The figure is not saved or
         displayed; call ``fig.savefig()`` or ``plt.show()`` afterwards.
 
     Raises:
-        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``.
+        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, or if
+            ``color_bins`` is invalid.
+
+    Example:
+        >>> fig = plot_from_df(df, color_bins=5)  # 0-20, 20-40, ..., 80-100
+        >>> fig.savefig("availability.png")
     """
     if kind not in _DEFAULT_FIGSIZE_PER_YEAR:
         raise ValueError(f"kind must be 'calendar' or 'bar', got {kind!r}")
+
+    cmap, norm = _resolve_color_scale(color_bins)
 
     if figsize_per_year is None:
         figsize_per_year = _DEFAULT_FIGSIZE_PER_YEAR[kind]
@@ -500,6 +588,8 @@ def plot_from_df(
             missing_color=missing_color,
             bar_gap=bar_gap,
             title_pad=title_pad,
+            cmap=cmap,
+            norm=norm,
         )
 
     return _build_figure(
@@ -516,4 +606,6 @@ def plot_from_df(
         missing_color=missing_color,
         tile_shape=tile_shape,
         title_pad=title_pad,
+        cmap=cmap,
+        norm=norm,
     )

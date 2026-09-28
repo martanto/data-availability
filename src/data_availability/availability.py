@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 from pathlib import Path
+from collections.abc import Sequence
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -83,6 +84,7 @@ class PlotAvailability:
         tile_shape: Literal["square", "squircle"] = "square",
         title_pad: int = 40,
         bar_gap: float = 0.8,
+        color_bins: int | Sequence[float] | None = None,
     ) -> plt.Figure:
         """Build a figure of data completeness over time.
 
@@ -107,13 +109,17 @@ class PlotAvailability:
                 the figure super-title.
             bar_gap: Bar only. Width of each day bar (values < 1 add
                 whitespace between bars).
+            color_bins: ``None`` for a continuous color scale; an ``int`` N
+                for N equal-width completeness bins; or a list of bin edges
+                from 0 to 100, e.g. ``[0, 20, 40, 60, 80, 100]``.
 
         Returns:
             A :class:`matplotlib.figure.Figure`.
 
         Raises:
             RuntimeError: If :meth:`select` has not been called first.
-            ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``.
+            ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, or if
+                ``color_bins`` is invalid.
         """
         if self._df is None:
             raise RuntimeError("Call .select() before .plot().")
@@ -134,4 +140,5 @@ class PlotAvailability:
             tile_shape=tile_shape,
             title_pad=title_pad,
             bar_gap=bar_gap,
+            color_bins=color_bins,
         )
