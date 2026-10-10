@@ -175,17 +175,15 @@ sa.to_json()                 # list of records
 sa.to_excel(path=None)       # write DataFrame to Excel; default filename in CWD
 ```
 
-With `kind="calendar"`, `.plot()` drops zero-completeness days, so days
-with no data render as `missing_color` (grey) instead of red at the bottom
-of the colormap. With `kind="bar"`, those days are kept and render red, so
-outages stand out in the strip. Call `.get_df()` for the unfiltered per-day
-results.
+`.plot()` drops zero-completeness days, so days with no data render as
+`missing_color` (grey) instead of red at the bottom of the colormap, in both
+kinds. Call `.get_df()` for the unfiltered per-day results.
 
 ### `plot_from_file(filepath, **kwargs)` / `plot_from_df(df, **kwargs)`
 
 Functional alternatives that accept the same keyword arguments as `.plot()` (including `kind`) plus `date_column` and `completeness_column`.
 
-These don't filter out zero-completeness rows, so those days render red in both kinds.
+Rows with a completeness of 0 are dropped before plotting, so those days render as `missing_color` (grey) in both kinds. If no row has a completeness above 0, they raise `ValueError`.
 
 ### `load_data(filepath, date_column, completeness_column)`
 

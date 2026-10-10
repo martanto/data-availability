@@ -198,10 +198,8 @@ class SeismicAvailability:
 
         Calculates completeness for every day in the configured date range,
         then passes the resulting DataFrame to :func:`~data_availability.plot.plot_from_df`.
-        For ``kind="calendar"``, days with zero completeness are excluded so
-        that no-data days render as ``missing_color`` rather than at the
-        bottom of the color scale. For ``kind="bar"``, they are kept and
-        render red so outages stand out in the strip.
+        Days with zero completeness render as ``missing_color`` in both
+        kinds, because :func:`~data_availability.plot.plot_from_df` drops them.
 
         Args:
             title: Figure super-title. Defaults to the NSLC string
@@ -241,9 +239,6 @@ class SeismicAvailability:
 
         if df.empty:
             raise ValueError(f"No completeness results for {self.sds.nslc}")
-
-        if kind == "calendar":
-            df = df[df["completeness"] > 0]
 
         return plot_from_df(
             df,

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "data-availability"
-version = "0.3.1"
+version = "0.3.2"
 authors = [
     {name = "Martanto", email = "martanto@live.com"},
 ]
@@ -40,3 +40,7 @@ dev = [
 
 [tool.uv]
 cache-dir = "./.cache/uv"
+
+[project.urls]
+Homepage = "https://github.com/martanto/data-availability"
+Issues = "https://github.com/martanto/data-availability/issues"
