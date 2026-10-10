@@ -52,3 +52,36 @@ def test_plot_with_color_bins(kind):
     fig = plot_from_df(df, kind=kind, color_bins=5)
     fig.savefig(OUTPUT_DIR / f"color_bins_{kind}.png", bbox_inches="tight")
     plt.close(fig)
+
+
+@pytest.mark.parametrize("kind", ["calendar", "bar"])
+def test_zero_completeness_renders_as_missing(kind):
+    df = pd.DataFrame(
+        {
+            "date": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]),
+            "completeness": [0.0, 50.0, 100.0],
+        }
+    )
+    missing_color = "#123456"
+
+    fig = plot_from_df(df, kind=kind, missing_color=missing_color)
+    ax = fig.axes[0]
+    missing_rgba = matplotlib.colors.to_rgba(missing_color)
+    if kind == "bar":
+        colors = [patch.get_facecolor() for patch in ax.patches]
+    else:
+        # Tiles are drawn column by column; Jan 1-3 2024 are Mon-Wed of week 0
+        colors = [patch.get_facecolor() for patch in ax.patches[:3]]
+    plt.close(fig)
+
+    assert colors[0] == missing_rgba
+    assert colors[1] != missing_rgba
+    assert colors[2] != missing_rgba
+
+
+def test_all_zero_completeness_raises():
+    df = pd.DataFrame(
+        {"date": pd.to_datetime(["2024-01-01"]), "completeness": [0.0]}
+    )
+    with pytest.raises(ValueError):
+        plot_from_df(df)

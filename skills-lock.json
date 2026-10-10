@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "google-python-docstrings": {
+      "source": "martanto/skills",
+      "sourceType": "github",
+      "skillPath": "skills/google-python-docstrings/SKILL.md",
+      "computedHash": "015d7d7a6cbd6bb13a8031428d2b0dbe6b8bfcc1f49e65c0adbca54d7c2e9571"
+    },
+    "obspy": {
+      "source": "martanto/skills",
+      "sourceType": "github",
+      "skillPath": "skills/obspy/SKILL.md",
+      "computedHash": "4af1861d2a1edc1891fccbd875d37b81892b5c189ab30cc7fb0a309fadef378b"
+    }
+  }
+}

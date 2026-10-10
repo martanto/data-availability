@@ -463,8 +463,9 @@ def plot_from_file(
         displayed; call ``fig.savefig()`` or ``plt.show()`` afterwards.
 
     Raises:
-        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, or if
-            ``color_bins`` is invalid.
+        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, if
+            ``color_bins`` is invalid, or if no day has a completeness
+            greater than 0.
     """
     df = load_data(
         filepath, date_column=date_column, completeness_column=completeness_column
@@ -518,6 +519,9 @@ def plot_from_df(
     - ``"bar"``: status-page style strip. Each day is a thin bar, with the
       year as each subplot's title and month labels below.
 
+    Days with a completeness of 0 are treated as having no data: they are
+    dropped before plotting and drawn in ``missing_color``.
+
     Args:
         df: DataFrame with a datetime ``date_column`` and a numeric
             ``completeness_column`` (0–100), as returned by
@@ -539,7 +543,7 @@ def plot_from_df(
             Defaults to ``2.2`` for calendar and ``1.2`` for bar.
         fig_width: Figure width in inches. Defaults to ``20``.
         missing_color: Hex or named color for calendar days absent from
-            ``df``.
+            ``df`` or with a completeness of 0.
         tile_shape: Calendar only. ``"square"`` draws plain rectangles;
             ``"squircle"`` draws rectangles with rounded corners.
         title_pad: Gap in pixels between the top of the first subplot and the
@@ -557,8 +561,9 @@ def plot_from_df(
         displayed; call ``fig.savefig()`` or ``plt.show()`` afterwards.
 
     Raises:
-        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, or if
-            ``color_bins`` is invalid.
+        ValueError: If ``kind`` is not ``"calendar"`` or ``"bar"``, if
+            ``color_bins`` is invalid, or if no day has a completeness
+            greater than 0.
 
     Example:
         >>> fig = plot_from_df(df, color_bins=5)  # 0-20, 20-40, ..., 80-100
@@ -568,6 +573,11 @@ def plot_from_df(
         raise ValueError(f"kind must be 'calendar' or 'bar', got {kind!r}")
 
     cmap, norm = _resolve_color_scale(color_bins)
+
+    # Zero completeness means no data: drop those days so they render as missing
+    df = df[df[completeness_column] > 0]
+    if df.empty:
+        raise ValueError("No days with completeness greater than 0 to plot")
 
     if figsize_per_year is None:
         figsize_per_year = _DEFAULT_FIGSIZE_PER_YEAR[kind]

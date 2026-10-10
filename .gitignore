@@ -191,3 +191,8 @@ output*
 **/.cache/
 logs/
 **/logs/
+
+# Local daily changelogs
+changelogs/
+/.agents
+/.claude
